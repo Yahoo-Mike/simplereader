@@ -1,0 +1,53 @@
+<resources>
+
+    <string name="app_name">SimpleReader</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="font_small">Small font</string>
+    <string name="font_big">Big font</string>
+
+    <string name="share">Share</string>
+
+    <string name="menu_item_settings">Settings</string>
+    <string name="menu_item_search">Search</string>
+
+    <string name="search_hint">Search In Book</string>
+
+
+    <!-- Readium integration -->
+    <string name="details">Details</string>
+    <string name="close">Close</string>
+
+    <!-- error strings -->
+    <string name="opening_publication_cannot_render">Cannot render publication.</string>
+    <string name="opening_publication_audio_engine_initialization">Could not open publication because audio engine initialization failed.</string>
+
+    <string name="publication_error_unsupported_asset">Asset format is not supported</string>
+    <string name="publication_error_restricted">You are not allowed to open this publication</string>
+    <string name="publication_error_out_of_memory">There is not enough memory on this device to open the publication.</string>
+    <string name="publication_error_scheme_not_supported">Publication source is not supported.</string>
+    <string name="publication_error_invalid_publication">Publication looks corrupted.</string>
+    <string name="publication_error_unexpected">An unexpected error occurred.</string>
+
+    <string name="publication_error_network_forbidden">Server denied access to a resource.</string>
+    <string name="publication_error_network_not_found">A resource has not been found on the server.</string>
+    <string name="publication_error_network_unreachable">Server cannot be reached.</string>
+    <string name="publication_error_network_timeout">Server was too long to respond.</string>
+    <string name="publication_error_network_ssl_handshake">A SSL error occurred.</string>
+    <string name="publication_error_network_unexpected">An unexpected network error occurred.</string>
+
+    <string name="publication_error_filesystem_not_found">A file has not been found.</string>
+    <string name="publication_error_filesystem_forbidden">You are not allowed to access the file.</string>
+    <string name="publication_error_filesystem_unexpected">An unexpected filesystem error occurred.</string>
+    <string name="publication_error_filesystem_insufficient_space">There is not enough space left on the device.</string>
+
+    <string name="sample_font_text">And so of larger—Darknesses—</string>
+    <string name="home">Home</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="add_bookmark">add bookmark</string>
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete_bookmark">Delete bookmark?</string>
+</resources>

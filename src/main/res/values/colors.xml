@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="default_theme_accent_color">#71C951</color>
+    <color name="primary_color">#71C951</color>
+
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="grey_color">#a8a8a8</color>
+
+</resources>

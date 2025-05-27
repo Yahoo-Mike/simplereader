@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+
+    <!-- BottomSheetDialog for the BottomSheetDialogFragment -->
+
+        <style name="Theme.SimpleReader.BottomSheetDialog" parent="Theme.MaterialComponents.DayNight.BottomSheetDialog">
+            <item name="bottomSheetStyle">@style/Widget.SimpleReader.BottomSheet</item>
+        </style>
+
+    <style name="Widget.SimpleReader.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <!-- corner radius -->
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.SimpleReader.BottomSheet</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.SimpleReader.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+    </style>
+
+    <!-- END BottomSheetDialog for the BottomSheetDialogFragment -->
+
+
+</resources>

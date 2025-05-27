@@ -1,0 +1,15 @@
+extra.set("kotlinVersion", "2.1.20")
+
+extra.set("appcompatVersion", "1.7.0")
+extra.set("constraintLayoutVersion", "2.2.1")
+extra.set("recyclerviewVersion", "1.4.0")
+extra.set("materialVersion", "1.12.0")
+extra.set("lifecycleVersion", "2.9.0")
+extra.set("activityVersion", "1.10.1")
+extra.set("fragmentVersion", "1.8.6")
+extra.set("composeUiVersion", "1.8.1")
+extra.set("coroutinesVersion", "1.10.1")
+extra.set("roomVersion", "2.7.1")
+
+extra.set("gsonVersion", "2.11.0")
+extra.set("readiumVersion", "3.1.1")
