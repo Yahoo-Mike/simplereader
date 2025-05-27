@@ -20,7 +20,9 @@ SimpleReader is an EPUB and PDF reader written in Java and Kotlin for Android.
 First clone the folioreader library to your project:
 
 ```
-git clone -b module --single-branch https://github.com/Yahoo-Mike/FolioReader-Android.git libs/simplereader
+mkdir libs/simplereader
+cd libs/simplereader
+git clone https://github.com/Yahoo-Mike/simplereader.git .
 ```
 
 Add following dependency to your project `settings.gradle.kts` file:
@@ -61,22 +63,20 @@ dependencies {
 
 ### Usage
 
-Get singleton object of `FolioReader`:
+Get singleton object of `SimpleReader`:
 
 ```java
-FolioReader folioReader = FolioReader.get();
+SimpleReader reader = SimpleReader.get();
 ```
 or for kotlin
 ```kotlin
-val folioReader = FolioReader.get()
+val reader = SimpleReader.get()
 ```
 
 Call the function `openBook()`:
 
-##### opening book from assets -
-
-```java
-folioReader.openBook("/data/user/0/com.myapp/files/illiad.epub");
+```kotlin
+reader.openBook("/data/user/0/com.myapp/files/illiad.epub")
 ```
 
 
