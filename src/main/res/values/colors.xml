@@ -4,6 +4,12 @@
     <color name="default_theme_accent_color">#71C951</color>
     <color name="primary_color">#71C951</color>
 
+    <!-- washed out version of primary -->
+    <color name="primary_color_light">#E0F5E5</color>
+
+    <color name="primary_search_text">#000000</color>
+    <color name="secondary_search_text">#555555</color>
+
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
     <color name="grey_color">#a8a8a8</color>

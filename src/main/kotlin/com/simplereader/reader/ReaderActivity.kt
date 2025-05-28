@@ -58,6 +58,7 @@ import androidx.fragment.app.FragmentManager
 import com.simplereader.book.loadProgressFromDb
 import com.simplereader.bookmark.BookmarkListFragment
 import com.simplereader.bookmark.BookmarkRepository
+import com.simplereader.search.SearchFragment
 import com.simplereader.settings.SettingsRepository
 
 @OptIn(InternalReadiumApi::class)
@@ -189,7 +190,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
         return when (item.itemId) {
             R.id.itemSearch -> {
-                Toast.makeText(this,"TODO: implement Search", Toast.LENGTH_LONG).show()
+                openSearchUI()
                 true
             }
             R.id.itemSettings -> {
@@ -502,4 +503,28 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         return handled
     }
 
+    // kick off the search UI (SearchFragment)
+    private fun openSearchUI() {
+
+        // only load the SearchUI if it's not already visible  (don't load multiple SearchFragments)
+        if (!binding.searchContainer.isVisible) {
+            // make the search container visible
+            binding.searchContainer.visibility = View.VISIBLE
+
+            supportFragmentManager.beginTransaction()
+                .setCustomAnimations(
+                    android.R.anim.fade_in,
+                    android.R.anim.fade_out,
+                    android.R.anim.fade_in,
+                    android.R.anim.fade_out
+                )
+                .add(R.id.search_container, SearchFragment())
+                .addToBackStack(null)
+                .commit()
+        }
+    }
+
+    fun closeSearchUI() {
+        binding.searchContainer.isVisible = false
+    }
 }

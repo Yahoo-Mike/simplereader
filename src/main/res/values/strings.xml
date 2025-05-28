@@ -50,4 +50,6 @@
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
     <string name="delete_bookmark">Delete bookmark?</string>
+    <string name="no_search_results">No search results</string>
+    <string name="search">Search</string>
 </resources>

@@ -141,4 +141,7 @@ class ReaderViewModel(
         _gotoLocator.value = ReaderEvent(bookmark.locator)
     }
 
+    fun onSearchResultSelected(locator: Locator) {
+        _gotoLocator.value = ReaderEvent(locator)
+    }
 }

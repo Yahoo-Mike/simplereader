@@ -44,7 +44,7 @@ abstract class ReaderFragment :  Fragment() {
     private var _binding: FragmentReaderBinding? = null
     private val binding get() = _binding!!
 
-    protected val viewModel: ReaderViewModel by activityViewModels()
+    protected val readerViewModel: ReaderViewModel by activityViewModels()
 
 
     protected abstract fun publish(data: BookData)
@@ -65,7 +65,7 @@ abstract class ReaderFragment :  Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // watch for a book to be ready to publish
-        viewModel.bookData.observe(viewLifecycleOwner) { data ->
+        readerViewModel.bookData.observe(viewLifecycleOwner) { data ->
             data?.let {
                 // child publishes to navigator fragment
                 publish(data)
@@ -79,8 +79,8 @@ abstract class ReaderFragment :  Fragment() {
                 // change the titlebar text
                 changeTitleBarText(navigator, data.publication.metadata.title)
 
-                // watch for user selecting a bookmark, then jump to the bookmark location
-                viewModel.gotoLocator.observe(viewLifecycleOwner) { event ->
+                // watch for user selecting a bookmark or search result, then jump to that location
+                readerViewModel.gotoLocator.observe(viewLifecycleOwner) { event ->
                     event.getContentIfNotHandled()?.let { locator ->
                         navigator?.go(locator)
                     }
@@ -115,7 +115,7 @@ abstract class ReaderFragment :  Fragment() {
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     navigator.currentLocator
-                        .onEach { viewModel.saveReadingProgression(it) }
+                        .onEach { readerViewModel.saveReadingProgression(it) }
                         .launchIn(this)
                 }
             }

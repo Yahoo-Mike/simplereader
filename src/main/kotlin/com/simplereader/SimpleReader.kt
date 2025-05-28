@@ -6,17 +6,15 @@ import android.content.Intent
 import com.simplereader.reader.ReaderActivity
 
 /**
- * java version created by avez raj  on 13 Sep 2017
+ * kotlin version created by avez raj  on 13 Sep 2017
  * converted to kotlin by yahoo mike on  4 May 2025
  */
 
 //
-// FolioReader: singleton class
+// SimpleReader: singleton class
 //
 class SimpleReader {
     private var context: Context? = null
-//    private var config: Config? = null
-//    private var overrideConfig = false
 
     // default constructor is private to prevent external instantiation
     private constructor()
@@ -27,8 +25,8 @@ class SimpleReader {
     }
 
     fun openBook(filePath: String): SimpleReader? {
-        val intentFolioActivity = getIntentFromUrl(filePath)
-        context!!.startActivity(intentFolioActivity)
+        val intentReaderActivity = getIntentFromUrl(filePath)
+        context!!.startActivity(intentReaderActivity)
         return singleton
     }
 
@@ -44,8 +42,6 @@ class SimpleReader {
     companion object {  // the singleton...
         @SuppressLint("StaticFieldLeak")
         private var singleton: SimpleReader? = null
-
-        const val EXTRA_BOOK_ID: String = "com.simplereader.extra.BOOK_ID"
 
         // returns single instance of singleton class
         fun getInstance(): SimpleReader {

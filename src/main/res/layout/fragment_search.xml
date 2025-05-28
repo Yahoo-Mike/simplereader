@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/search_fragment_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    tools:context=".SearchFragment">
+
+    <!-- Search bar container -->
+    <LinearLayout
+        android:id="@+id/search_bar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_margin="8dp"
+        android:background="@drawable/search_bar_background"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <!-- Back arrow -->
+        <ImageView
+            android:id="@+id/button_back"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_back_arrow"
+            android:contentDescription="@string/cancel"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <!-- Search input -->
+        <EditText
+            android:id="@+id/search_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:autofillHints="enter your search here"
+            android:background="@android:color/transparent"
+            android:hint="@string/search_hint"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:singleLine="true"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+        <!-- Search icon -->
+        <ImageView
+            android:id="@+id/button_search"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_search"
+            android:contentDescription="@string/search"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+    <!-- No results message -->
+    <TextView
+        android:id="@+id/no_results_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/no_search_results"
+        android:textColor="#999999"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginTop="64dp"
+        android:visibility="visible" />
+
+    <!-- Search results list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/search_results_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="64dp"
+        android:visibility="gone" />
+
+</FrameLayout>

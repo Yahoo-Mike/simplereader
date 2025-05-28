@@ -45,12 +45,12 @@ class EpubReaderFragment :  ReaderFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
 
         // if bookData has been set, restore the NavigatorFactory
-        val epubInitData = viewModel.bookData.value as? EpubData
+        val epubInitData = readerViewModel.bookData.value as? EpubData
         if (epubInitData != null) {
             val navigatorFactory: EpubNavigatorFactory = epubInitData.navigatorFactory
 
             // You should restore the initial location from your view model.
-            val settings = viewModel.readerSettings.value ?: Settings.DEFAULT
+            val settings = readerViewModel.readerSettings.value ?: Settings.DEFAULT
             childFragmentManager.fragmentFactory =
                 navigatorFactory.createFragmentFactory(
                     initialLocator = epubInitData.currentLocation,
@@ -71,7 +71,7 @@ class EpubReaderFragment :  ReaderFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // watch for changes in the Settings
-        viewModel.readerSettings.observe(viewLifecycleOwner) { settings ->
+        readerViewModel.readerSettings.observe(viewLifecycleOwner) { settings ->
             // user changed settings using SettingsBottomSheet,
             // so now re-render the current publication
             val newPrefs = EpubPreferences(
@@ -96,7 +96,7 @@ class EpubReaderFragment :  ReaderFragment() {
 
             // setup the factory
             val navigatorFactory: EpubNavigatorFactory = initData.navigatorFactory
-            val settings = viewModel.readerSettings.value ?: Settings.DEFAULT
+            val settings = readerViewModel.readerSettings.value ?: Settings.DEFAULT
 
             childFragmentManager.fragmentFactory =
                 navigatorFactory.createFragmentFactory(

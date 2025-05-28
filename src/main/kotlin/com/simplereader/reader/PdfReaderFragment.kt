@@ -35,7 +35,7 @@ class PdfReaderFragment :  ReaderFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
 
         // if bookData has been set, restore the NavigatorFactory
-        val pdfInitData = viewModel.bookData.value as? PdfData
+        val pdfInitData = readerViewModel.bookData.value as? PdfData
         if ( pdfInitData != null) {
             val navigatorFactory : PdfiumNavigatorFactory = pdfInitData.navigatorFactory
 
