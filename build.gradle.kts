@@ -2,16 +2,16 @@ apply(from = "versions.gradle.kts")
 
 val kotlinVersion: String by extra
 
-val appcompatVersion: String by extra
-val constraintLayoutVersion: String by extra
-val recyclerviewVersion: String by extra
-val materialVersion: String by extra
-val lifecycleVersion: String by extra
 val activityVersion: String by extra
-val fragmentVersion: String by extra
+val appcompatVersion: String by extra
 val composeUiVersion: String by extra
-val roomVersion: String by extra
+val constraintLayoutVersion: String by extra
 val coroutinesVersion: String by extra
+val fragmentVersion: String by extra
+val lifecycleVersion: String by extra
+val materialVersion: String by extra
+val recyclerviewVersion: String by extra
+val roomVersion: String by extra
 
 val gsonVersion: String by extra
 val readiumVersion: String by extra
@@ -30,10 +30,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-
         minSdk    =  28
-
-        vectorDrawables.useSupportLibrary = true
     }
 
     sourceSets {
@@ -124,11 +121,6 @@ dependencies {
 // also see our settings.gradle to add toolchain resolver plugin
 kotlin {
     jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
-java {
-    toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
