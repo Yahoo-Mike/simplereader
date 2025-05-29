@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -59,7 +60,9 @@ import com.simplereader.book.loadProgressFromDb
 import com.simplereader.bookmark.BookmarkListFragment
 import com.simplereader.bookmark.BookmarkRepository
 import com.simplereader.search.SearchFragment
+import com.simplereader.search.SearchViewModel
 import com.simplereader.settings.SettingsRepository
+import kotlin.math.roundToInt
 
 @OptIn(InternalReadiumApi::class)
 @Suppress("DEPRECATION")
@@ -73,7 +76,9 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     lateinit var readium: Readium
         private set // make the setter private
 
-    private lateinit var viewModel: ReaderViewModel
+    private lateinit var readerViewModel: ReaderViewModel
+    private val searchViewModel: SearchViewModel by viewModels()
+
 
     private lateinit var navDrawerToggle: ActionBarDrawerToggle
 
@@ -112,9 +117,8 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         val settingsDao = ReaderDatabase.Companion.getInstance(applicationContext).readerSettingsDao()
         val settingsRepository = SettingsRepository(settingsDao)
 
-        viewModel = ViewModelProvider(  this,
-                                        ReaderViewModelFactory(
-                                                application,
+        readerViewModel = ViewModelProvider(    this,
+                                                ReaderViewModelFactory(
                                                 bookRepository,
                                                 bookmarkRepository,
                                                 settingsRepository)
@@ -327,7 +331,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     private fun onBookInitSuccess(initData: BookData) {
 
         // pass the book info to the viewModel
-        viewModel.setBookData(initData)
+        readerViewModel.setBookData(initData)
 
     }
 
@@ -347,7 +351,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         )
 
         // if the book is already in the db, load the progress from the db record
-        initData.loadProgressFromDb(viewModel)
+        initData.loadProgressFromDb(readerViewModel)
 
         return Try.Companion.success(initData)
     }
@@ -366,7 +370,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         )
 
         // if the book is already in the db, load the progress from the db record
-        initData.loadProgressFromDb(viewModel)
+        initData.loadProgressFromDb(readerViewModel)
 
         return Try.Companion.success(initData)
     }
@@ -506,6 +510,9 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     // kick off the search UI (SearchFragment)
     private fun openSearchUI() {
 
+        //before opening it, make sure the search results recylerview is empty
+        searchViewModel.clearSearchResults()
+
         // only load the SearchUI if it's not already visible  (don't load multiple SearchFragments)
         if (!binding.searchContainer.isVisible) {
             // make the search container visible
@@ -522,9 +529,22 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
                 .addToBackStack(null)
                 .commit()
         }
+
     }
 
     fun closeSearchUI() {
         binding.searchContainer.isVisible = false
     }
+
+    // the text for "n% read" indication on the appbar
+    fun updateProgressIndicator(progress: Double) {
+        val percent = (progress * 100.0).roundToInt()
+        val text = when (percent) {
+            in 1..99 -> "$percent% read"
+            100 -> "Finished"
+            else -> ""
+        }
+        binding.progressIndicator.text = text
+    }
+
 }

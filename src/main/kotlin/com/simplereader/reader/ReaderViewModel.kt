@@ -11,7 +11,6 @@
 
 package com.simplereader.reader
 
-import android.app.Application
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -32,7 +31,6 @@ import org.readium.r2.shared.publication.Locator
 
 @OptIn(ExperimentalReadiumApi::class)
 class ReaderViewModel(
-    private val application: Application,
     private val bookRepository: BookRepository,
     private val bookmarkRepository: BookmarkRepository,
     private val settingsRepository: SettingsRepository

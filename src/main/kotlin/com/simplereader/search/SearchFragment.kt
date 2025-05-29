@@ -1,5 +1,6 @@
 package com.simplereader.search
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.view.KeyEvent
@@ -24,6 +25,15 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
     private val readerViewModel: ReaderViewModel by activityViewModels()
 
     private lateinit var adapter: SearchResultsAdapter
+
+
+    @SuppressLint("NotifyDataSetChanged")
+    override fun onStart() {
+        super.onStart()
+
+        // reset search query to nothing
+        binding.searchInput.text.clear()
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

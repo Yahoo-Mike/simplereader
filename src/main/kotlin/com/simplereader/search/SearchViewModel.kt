@@ -1,17 +1,14 @@
 package com.simplereader.search
 
-
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.StyleSpan
 import android.graphics.Typeface
 import android.text.style.BackgroundColorSpan
-import android.graphics.Color
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.simplereader.util.ReaderEvent
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
@@ -22,18 +19,12 @@ import androidx.core.graphics.toColorInt
 
 class SearchViewModel : ViewModel() {
 
-
     private val _searchResults = MutableLiveData<List<SearchResult>>()
     val searchResults: LiveData<List<SearchResult>> = _searchResults
-
-//    private val _searchQuery = MutableLiveData<String>()
-//    val searchQuery: LiveData<String> = _searchQuery
 
     @OptIn(ExperimentalReadiumApi::class)
     fun performSearch(query: String, publication: Publication?) {
         if (publication == null) return    // do nothing
-
-//        _searchQuery.value = query.trim()
 
         viewModelScope.launch {
             val searchIterator : SearchIterator? = publication.search(query)

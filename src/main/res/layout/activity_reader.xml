@@ -35,10 +35,21 @@
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="?android:attr/actionBarSize"
-                app:contentInsetLeft="0dp"
-                app:contentInsetStart="0dp"
-                app:contentInsetStartWithNavigation="0dp" />
+                android:layout_height="?attr/actionBarSize"
+                app:contentInsetStartWithNavigation="0dp">
+
+                <TextView
+                    android:id="@+id/progress_indicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/progress_color"
+                    android:textStyle="bold"
+                    android:layout_gravity="end|center_vertical"
+                    android:visibility="visible"
+                    android:layout_marginEnd="48dp" />
+
+            </androidx.appcompat.widget.Toolbar>
 
         </com.google.android.material.appbar.AppBarLayout>
 
@@ -55,7 +66,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Search UI -->
+        <!-- Search UI overlay -->
         <FrameLayout
             android:id="@+id/search_container"
             android:layout_width="0dp"

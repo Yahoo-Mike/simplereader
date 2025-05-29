@@ -32,6 +32,7 @@ import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.shared.ExperimentalReadiumApi
+import kotlin.math.roundToInt
 
 abstract class ReaderFragment :  Fragment() {
 
@@ -115,7 +116,13 @@ abstract class ReaderFragment :  Fragment() {
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                     navigator.currentLocator
-                        .onEach { readerViewModel.saveReadingProgression(it) }
+                        .onEach {
+                            readerViewModel.saveReadingProgression(it)
+
+                            // update page indicator
+                            val progress = it.locations.totalProgression ?: 0.0
+                            (activity as? ReaderActivity)?.updateProgressIndicator(progress)
+                        }
                         .launchIn(this)
                 }
             }

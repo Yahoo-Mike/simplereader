@@ -15,7 +15,9 @@
             android:authorities="${applicationId}.provider.appcontext"
             android:exported="false" />
 
-        <activity android:name="com.simplereader.reader.ReaderActivity" />
+        <activity
+            android:name="com.simplereader.reader.ReaderActivity"
+            android:windowSoftInputMode="adjustPan"/>
 
     </application>
 
