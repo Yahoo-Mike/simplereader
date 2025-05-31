@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/bookmark_panel"
+    android:id="@+id/side_panel"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -9,7 +9,7 @@
 
     <!-- Title Bar -->
     <TextView
-        android:id="@+id/bookmark_title"
+        android:id="@+id/sidepanel_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/bookmarks"
@@ -21,7 +21,7 @@
         android:elevation="4dp" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/bookmark_list"
+        android:id="@+id/sidepanel_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -31,7 +31,7 @@
 
     <!-- FloatingActionButton to add a new bookmark -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/add_bookmark_button"
+        android:id="@+id/sidepanel_add_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"

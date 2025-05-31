@@ -1,75 +1,40 @@
 package com.simplereader.bookmark
 
-import android.annotation.SuppressLint
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.simplereader.databinding.FragmentBookmarkListBinding
-import com.simplereader.reader.ReaderViewModel
-import kotlin.getValue
+import com.simplereader.ui.sidepanel.SidepanelAdapter
+import com.simplereader.ui.sidepanel.SidepanelListFragment
 
-class BookmarkListFragment : Fragment() {
+class BookmarkListFragment : SidepanelListFragment<BookmarkListItem>() {
 
-    private var _binding: FragmentBookmarkListBinding? = null
-    private val binding get() = _binding!!
+    override fun newInstance() : Fragment = BookmarkListFragment()
 
-    private lateinit var adapter: BookmarkAdapter
-    private val viewModel: ReaderViewModel by activityViewModels()
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentBookmarkListBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        adapter = BookmarkAdapter(
-            onBookmarkSelected = { bookmark -> viewModel.gotoBookmark(bookmark) },
-            onDeleteConfirmed = { bookmark -> viewModel.deleteBookmark(bookmark) }
-        )
-        binding.bookmarkList.adapter = adapter
-        binding.bookmarkList.layoutManager = LinearLayoutManager(requireContext())
-
+    // prepare bookmarks for recyclerView and refresh it when bookmarks change
+    override fun prepareAndObserveData() {
         // initial load of existing bookmarks from the db
-        val bookId = viewModel.bookData.value?.bookId()
-        bookId?.let { viewModel.loadBookmarks(it) }
+        val bookId = readerViewModel.bookData.value?.bookId()
+        bookId?.let { readerViewModel.loadBookmarks(it) }
 
-        viewModel.bookmarks.observe(viewLifecycleOwner) { bookmarkList ->
-            adapter.submitList(bookmarkList)
+        // when bookmarks change, refresh the recyclerview
+        readerViewModel.bookmarks.observe(viewLifecycleOwner) { bookmarkList ->
+            val bookmarkItems = bookmarkList?.map { BookmarkListItem(it) } ?: emptyList()
+            adapter.submitList(bookmarkItems)
         }
-
-        // watch for user pressing the "add bookmark" button
-        binding.addBookmarkButton.setOnClickListener {
-            viewModel.bookData.value?.currentLocation?.let { locator ->
-                viewModel.addBookmark(locator)
-            }
-        }
-
-        // setup ability to swipe a bookmark to delete it
-        val swipeCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
-            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean = false
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val position = viewHolder.bindingAdapterPosition
-                adapter.markPendingDelete(position)
-            }
-        }
-        ItemTouchHelper(swipeCallback).attachToRecyclerView(binding.bookmarkList)
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null // avoid memory leak
+    // make a recyclerview adapter for Bookmarks
+    override fun createAdapter() : SidepanelAdapter<BookmarkListItem> {
+        return BookmarkAdapter.create(
+            onBookmarkSelected = { item -> readerViewModel.gotoBookmark(item.bookmark) },
+            onDeleteConfirmed = { item -> readerViewModel.deleteBookmark(item.bookmark) }
+        )
+    }
+
+    // what to do when user clicks on "add" button
+    override fun onAddClicked() {
+        readerViewModel.bookData.value?.currentLocation?.let { locator ->
+            readerViewModel.addBookmark(locator)
+        }
     }
 
 }

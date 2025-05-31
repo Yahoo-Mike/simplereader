@@ -59,9 +59,11 @@ import androidx.fragment.app.FragmentManager
 import com.simplereader.book.loadProgressFromDb
 import com.simplereader.bookmark.BookmarkListFragment
 import com.simplereader.bookmark.BookmarkRepository
+import com.simplereader.highlight.HighlightListFragment
 import com.simplereader.search.SearchFragment
 import com.simplereader.search.SearchViewModel
 import com.simplereader.settings.SettingsRepository
+import com.simplereader.ui.sidepanel.SidepanelListFragment
 import kotlin.math.roundToInt
 
 @OptIn(InternalReadiumApi::class)
@@ -150,7 +152,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         // when user presses system Back button, dismiss Bookmark panel if it's open
         val backCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (!dismissBookmarkPanel()) {
+                if (!dismissSidepanel()) {
                     // Let system handle back press normally (e.g. finish activity)
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
@@ -203,7 +205,11 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
                 true
             }
             R.id.itemBookmarks -> {
-                showBookmarkPanel()
+                showSidepanel(BookmarkListFragment())
+                true
+            }
+            R.id.itemHighlight -> {
+                showSidepanel(HighlightListFragment())
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -387,14 +393,6 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         navDrawerToggle.onConfigurationChanged(newConfig)
     }
 
-    /**
-     * If called, this method will occur after onStop() for applications targeting platforms
-     * starting with Build.VERSION_CODES.P. For applications targeting earlier platform versions
-     * this method will occur before onStop() and there are no guarantees about whether it will
-     * occur before or after onPause()
-     *
-     * @see android.app.Activity.onSaveInstanceState
-     */
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         Log.v(LOG_TAG, "-> onSaveInstanceState")
@@ -405,7 +403,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     // when user taps, toggle the appBar
     override fun onSingleTap() {
 
-        val handled = dismissBookmarkPanel()
+        val handled = dismissSidepanel()
         if (!handled)
             toggleAppBar()
     }
@@ -451,35 +449,32 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         }, delayMsecs)
     }
 
-    fun showBookmarkPanel() {
-        val panel = findViewById<FrameLayout>(R.id.bookmark_panel_container)
+    fun showSidepanel(panelFragment: SidepanelListFragment<*>) {
+        val panel = findViewById<FrameLayout>(R.id.side_panel_container)
         if (panel.visibility != View.VISIBLE) {
 
-            // hide the appBar, so there's more room for the bookmark list
+            // hide the appBar, so there's more room for the bookmark/highlight list
             hideAppBar()
 
             panel.visibility = View.VISIBLE
             panel.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_right))
 
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.bookmark_panel_container, BookmarkListFragment(),"BookmarkPanel")
-                .addToBackStack("BookmarkPanel")
-                .commit()
+            panelFragment.showPanel(supportFragmentManager)
         }
     }
 
-    fun dismissBookmarkPanel() : Boolean {
+    fun dismissSidepanel() : Boolean {
         var handled = false
 
-        val panel = binding.bookmarkPanelContainer
+        val panel = binding.sidePanelContainer
 
         if ( panel.isVisible )  {
+            val panelTag = SidepanelListFragment.getPanelTag()
+            val sidePanel =
+                supportFragmentManager.findFragmentByTag(panelTag) as? SidepanelListFragment<*>
 
-            val bookmarkPanel =
-                supportFragmentManager.findFragmentByTag("BookmarkPanel") as? BookmarkListFragment
-
-            if (bookmarkPanel != null) {
-                // dismiss the bookmark list...
+            if (sidePanel != null) {
+                // dismiss the bookmark/highlight list...
                 // Start slide-out animation
                 val slideOut = AnimationUtils.loadAnimation(this, R.anim.slide_out_right)
                 slideOut.setAnimationListener(object : Animation.AnimationListener {
@@ -488,7 +483,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
                     override fun onAnimationEnd(animation: Animation) {
                         // After animation ends, remove the fragment and hide the panel
                         supportFragmentManager.popBackStack(
-                            "BookmarkPanel",
+                            panelTag,
                             FragmentManager.POP_BACK_STACK_INCLUSIVE
                         )
                         panel.visibility = View.GONE

@@ -53,9 +53,9 @@
 
         </com.google.android.material.appbar.AppBarLayout>
 
-        <!-- Bookmark panel overlay -->
+        <!-- side panel overlay for (bookmark and highlight lists) -->
         <FrameLayout
-            android:id="@+id/bookmark_panel_container"
+            android:id="@+id/side_panel_container"
             android:layout_width="300dp"
             android:layout_height="0dp"
             android:layout_gravity="end"

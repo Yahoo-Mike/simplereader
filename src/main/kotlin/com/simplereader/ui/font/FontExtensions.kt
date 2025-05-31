@@ -1,4 +1,4 @@
-package com.simplereader.ui
+package com.simplereader.ui.font
 
 import org.readium.r2.navigator.preferences.FontFamily
 

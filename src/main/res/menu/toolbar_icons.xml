@@ -24,4 +24,11 @@
         android:title="@string/bookmarks"
         app:showAsAction="ifRoom"
         tools:showAsAction="always" />
+
+    <item
+        android:id="@+id/itemHighlight"
+        android:icon="@drawable/ic_highlight"
+        android:title="@string/highlight"
+        app:showAsAction="ifRoom"
+        tools:showAsAction="always" />
 </menu>

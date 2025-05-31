@@ -6,15 +6,15 @@ android:layout_height="wrap_content"
 android:background="@android:color/white"
 android:padding="16dp">
 
-    <!-- Normal Bookmark Content -->
+    <!-- Sidepanel for bookmarks and highlights -->
     <LinearLayout
-        android:id="@+id/normal_content"
+        android:id="@+id/sidepanel_content"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
         <TextView
-            android:id="@+id/bookmark_label"
+            android:id="@+id/sidepanel_label"
             android:textSize="16sp"
             android:textColor="@android:color/black"
             android:layout_width="wrap_content"
@@ -35,7 +35,7 @@ android:padding="16dp">
 
         <TextView
             android:layout_weight="1"
-            android:text="@string/delete_bookmark"
+            android:text="@string/delete"
             android:textSize="16sp"
             android:textColor="@android:color/black"
             android:layout_width="0dp"

@@ -21,10 +21,10 @@ import com.simplereader.model.BookData
 import com.simplereader.model.EpubData
 import com.simplereader.settings.Settings
 import com.simplereader.toc.TocAdapter
-import com.simplereader.ui.ANDADA
-import com.simplereader.ui.LATO
-import com.simplereader.ui.LORA
-import com.simplereader.ui.RALEWAY
+import com.simplereader.ui.font.ANDADA
+import com.simplereader.ui.font.LATO
+import com.simplereader.ui.font.LORA
+import com.simplereader.ui.font.RALEWAY
 
 import org.readium.r2.navigator.epub.*
 import org.readium.r2.navigator.epub.css.FontStyle

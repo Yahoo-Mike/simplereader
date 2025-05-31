@@ -15,6 +15,7 @@
             android:authorities="${applicationId}.provider.appcontext"
             android:exported="false" />
 
+        <!-- adjustPan is required to stabilise the SearchUI -->
         <activity
             android:name="com.simplereader.reader.ReaderActivity"
             android:windowSoftInputMode="adjustPan"/>

@@ -26,4 +26,3 @@ fun BookmarkEntity.toBookmark(): Bookmark {
         locator = parsedLocator
     )
 }
-

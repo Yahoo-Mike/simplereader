@@ -20,6 +20,7 @@ import com.simplereader.book.BookRepository
 import com.simplereader.book.toBookEntity
 import com.simplereader.bookmark.Bookmark
 import com.simplereader.bookmark.BookmarkRepository
+import com.simplereader.highlight.Highlight
 import com.simplereader.model.BookData
 import com.simplereader.settings.Settings
 import com.simplereader.settings.SettingsRepository
@@ -139,7 +140,17 @@ class ReaderViewModel(
         _gotoLocator.value = ReaderEvent(bookmark.locator)
     }
 
+
+    fun deleteHighlight(highlight: Highlight) {
+        // TODO
+    }
+
+    fun gotoHighlight(highlight: Highlight) {
+        // TODO
+    }
+
     fun onSearchResultSelected(locator: Locator) {
         _gotoLocator.value = ReaderEvent(locator)
     }
+
 }

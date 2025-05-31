@@ -12,7 +12,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.simplereader.R
 import com.simplereader.databinding.ViewSettingsBinding
 import com.simplereader.reader.ReaderViewModel
-import com.simplereader.ui.FontPreviewAdapter
+import com.simplereader.ui.font.FontPreviewAdapter
 import org.readium.r2.navigator.preferences.FontFamily
 
 /**

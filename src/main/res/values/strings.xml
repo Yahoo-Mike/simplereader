@@ -15,10 +15,19 @@
 
     <string name="search_hint">Search In Book</string>
 
-
-    <!-- Readium integration -->
     <string name="details">Details</string>
     <string name="close">Close</string>
+
+    <string name="sample_font_text">And so of larger—Darknesses—</string>
+    <string name="home">Home</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="add_bookmark">add bookmark</string>
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete?</string>
+    <string name="no_search_results">No search results</string>
+    <string name="search">Search</string>
+    <string name="highlight">Highlight/Define</string>
 
     <!-- error strings -->
     <string name="opening_publication_cannot_render">Cannot render publication.</string>
@@ -43,13 +52,4 @@
     <string name="publication_error_filesystem_unexpected">An unexpected filesystem error occurred.</string>
     <string name="publication_error_filesystem_insufficient_space">There is not enough space left on the device.</string>
 
-    <string name="sample_font_text">And so of larger—Darknesses—</string>
-    <string name="home">Home</string>
-    <string name="bookmarks">Bookmarks</string>
-    <string name="add_bookmark">add bookmark</string>
-    <string name="confirm">Confirm</string>
-    <string name="cancel">Cancel</string>
-    <string name="delete_bookmark">Delete bookmark?</string>
-    <string name="no_search_results">No search results</string>
-    <string name="search">Search</string>
 </resources>
