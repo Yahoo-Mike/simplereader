@@ -6,6 +6,8 @@ import com.simplereader.book.BookDao
 import com.simplereader.book.BookDataEntity
 import com.simplereader.bookmark.BookmarkDao
 import com.simplereader.bookmark.BookmarkEntity
+import com.simplereader.highlight.HighlightDao
+import com.simplereader.highlight.HighlightEntity
 import com.simplereader.settings.SettingsDao
 import com.simplereader.settings.SettingsEntity
 
@@ -13,6 +15,7 @@ import com.simplereader.settings.SettingsEntity
     entities = [
         BookDataEntity::class,
         BookmarkEntity::class,
+        HighlightEntity::class,
         SettingsEntity::class
        ],
     version = 1,
@@ -21,6 +24,7 @@ abstract class ReaderDatabase : RoomDatabase() {
 
     abstract fun bookDao(): BookDao
     abstract fun bookmarkDao(): BookmarkDao
+    abstract fun highlightDao(): HighlightDao
     abstract fun readerSettingsDao(): SettingsDao
 
     companion object {

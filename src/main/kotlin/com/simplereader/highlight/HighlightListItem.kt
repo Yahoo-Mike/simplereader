@@ -4,7 +4,7 @@ import com.simplereader.ui.sidepanel.SidepanelListItem
 
 data class HighlightListItem (val highlight: Highlight): SidepanelListItem() {
 
-    override fun getLabel() : String = highlight.label
+    override fun getLabel() : String = highlight.label ?: "Highlight ${highlight.id}"
 
     override fun areItemsTheSame(other: SidepanelListItem) : Boolean {
         return  (other is HighlightListItem) &&

@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -21,6 +22,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
@@ -60,10 +62,13 @@ import com.simplereader.book.loadProgressFromDb
 import com.simplereader.bookmark.BookmarkListFragment
 import com.simplereader.bookmark.BookmarkRepository
 import com.simplereader.highlight.HighlightListFragment
+import com.simplereader.highlight.HighlightRepository
+import com.simplereader.highlight.HighlightViewModel
 import com.simplereader.search.SearchFragment
 import com.simplereader.search.SearchViewModel
 import com.simplereader.settings.SettingsRepository
 import com.simplereader.ui.sidepanel.SidepanelListFragment
+import org.readium.r2.navigator.SelectableNavigator
 import kotlin.math.roundToInt
 
 @OptIn(InternalReadiumApi::class)
@@ -80,7 +85,6 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
     private lateinit var readerViewModel: ReaderViewModel
     private val searchViewModel: SearchViewModel by viewModels()
-
 
     private lateinit var navDrawerToggle: ActionBarDrawerToggle
 
@@ -100,8 +104,8 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
         const val INTENT_FILENAME = "com.simplereader.asset_path"
 
-        const val FIVE_SECONDS : Long= 5000
-        const val TEN_SECONDS : Long = 10000
+        const val FIVE_SECONDS: Long = 5000
+        const val TEN_SECONDS: Long = 10000
 
     }
 
@@ -116,15 +120,18 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         val bookmarkDao = ReaderDatabase.Companion.getInstance(applicationContext).bookmarkDao()
         val bookmarkRepository = BookmarkRepository(bookmarkDao)
 
-        val settingsDao = ReaderDatabase.Companion.getInstance(applicationContext).readerSettingsDao()
+        val settingsDao =
+            ReaderDatabase.Companion.getInstance(applicationContext).readerSettingsDao()
         val settingsRepository = SettingsRepository(settingsDao)
 
-        readerViewModel = ViewModelProvider(    this,
-                                                ReaderViewModelFactory(
-                                                bookRepository,
-                                                bookmarkRepository,
-                                                settingsRepository)
-                                     )[ReaderViewModel::class.java]
+        readerViewModel = ViewModelProvider(
+            this,
+            ReaderViewModelFactory(
+                bookRepository,
+                bookmarkRepository,
+                settingsRepository
+            )
+        )[ReaderViewModel::class.java]
 
         binding = ActivityReaderBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -178,7 +185,8 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            == PackageManager.PERMISSION_GRANTED) {
+            == PackageManager.PERMISSION_GRANTED
+        ) {
             // permission already granted, so call openBook()
             openBook()
         } else {  // request permission, if granted the callback will call openBook()
@@ -199,19 +207,23 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
                 openSearchUI()
                 true
             }
+
             R.id.itemSettings -> {
                 val sheet = SettingsBottomSheet()
                 sheet.show(supportFragmentManager, sheet.tag)
                 true
             }
+
             R.id.itemBookmarks -> {
                 showSidepanel(BookmarkListFragment())
                 true
             }
+
             R.id.itemHighlight -> {
                 showSidepanel(HighlightListFragment())
                 true
             }
+
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -226,23 +238,24 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
                 }
                 .onSuccess {
                     onBookInitSuccess(it)
-              }
+                }
         }
     }
 
     private suspend fun openSingleBook(): Try<BookData, OpeningError> =
         coroutineQueue.await { initBook() }
 
-    private suspend fun initBook() : Try<BookData, OpeningError> {
+    private suspend fun initBook(): Try<BookData, OpeningError> {
         Log.v(LOG_TAG, "-> initBook")
 
         val bookUrl = File(mFilename!!).toUrl()
-        val bookType : MediaType? = BookData.getMediaType(mFilename!!)
+        val bookType: MediaType? = BookData.getMediaType(mFilename!!)
         if (bookType == null) {
             return Try.Companion.failure(
-                        OpeningError.PublicationError(
-                            PublicationError.UnsupportedScheme(GenericError(mFilename!!))
-                        ))
+                OpeningError.PublicationError(
+                    PublicationError.UnsupportedScheme(GenericError(mFilename!!))
+                )
+            )
         }
 
         // retrieve asset to access the file content
@@ -278,17 +291,19 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         }
 
         if (publication.conformsTo(Publication.Profile.EPUB)) {
-                showSettingsMenu(true)
+            showSettingsToolbarIcon(true)
+            showHighlightsToolbarIcon(true)
 
-                if (savedInstanceState == null) {
-                    // put an EpubReaderFragment in the navigator_container
-                    supportFragmentManager.beginTransaction()
-                        .replace(binding.navigatorContainer.id, EpubReaderFragment.newInstance())
-                        .commit()
-                }
+            if (savedInstanceState == null) {
+                // put an EpubReaderFragment in the navigator_container
+                supportFragmentManager.beginTransaction()
+                    .replace(binding.navigatorContainer.id, EpubReaderFragment.newInstance())
+                    .commit()
+            }
         } else {
             if (publication.conformsTo(Publication.Profile.PDF)) {
-                showSettingsMenu(false)
+                showSettingsToolbarIcon(false)
+                showHighlightsToolbarIcon(false)
 
                 if (savedInstanceState == null) {
                     // put an PdfReaderFragment in the navigator_container
@@ -303,9 +318,11 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
             publication.conformsTo(Publication.Profile.EPUB) || publication.readingOrder.allAreHtml -> {
                 openEpub(publication)
             }
+
             publication.conformsTo(Publication.Profile.PDF) -> {
                 openPdf(publication)
             }
+
             else ->
                 Try.Companion.failure(
                     OpeningError.CannotRender(
@@ -317,14 +334,21 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         return initData
     }
 
-    private var  showSettings = true
-    private fun showSettingsMenu( show: Boolean) {
+    private var showSettings = true
+    private fun showSettingsToolbarIcon(show: Boolean) {
         showSettings = show
+        invalidateOptionsMenu()
+    }
+
+    private var showHighlights = true
+    private fun showHighlightsToolbarIcon(show: Boolean) {
+        showHighlights = show
         invalidateOptionsMenu()
     }
 
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
         menu?.findItem(R.id.itemSettings)?.isVisible = showSettings
+        menu?.findItem(R.id.itemHighlight)?.isVisible = showHighlights
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -341,7 +365,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
     }
 
-    private suspend fun openEpub( publication: Publication ): Try<EpubData, OpeningError> {
+    private suspend fun openEpub(publication: Publication): Try<EpubData, OpeningError> {
 
         // create navFactory for this publication
         // note: you can set user preferences here too: see https://github.com/readium/kotlin-toolkit/blob/develop/docs/guides/navigator/navigator.md
@@ -363,7 +387,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     }
 
     @OptIn(ExperimentalReadiumApi::class)
-    private suspend fun openPdf( publication: Publication ): Try<PdfData, OpeningError> {
+    private suspend fun openPdf(publication: Publication): Try<PdfData, OpeningError> {
         val pdfEngine = PdfiumEngineProvider()
         val navigatorFactory = PdfNavigatorFactory(publication, pdfEngine)
         val filename = mFilename ?: "unknown"
@@ -418,7 +442,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
     // if positive non-null "duration" is passed, then AppBar shown for "duration" milliseconds
     // if duration==0, then appBar remains shown (until screen is tapped again)
-    private fun showAppBar( showMsecs : Long = 0) {
+    private fun showAppBar(showMsecs: Long = 0) {
         binding.appBarLayout.apply {
             if (visibility != View.VISIBLE) {
                 alpha = 0f
@@ -463,12 +487,12 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         }
     }
 
-    fun dismissSidepanel() : Boolean {
+    fun dismissSidepanel(): Boolean {
         var handled = false
 
         val panel = binding.sidePanelContainer
 
-        if ( panel.isVisible )  {
+        if (panel.isVisible) {
             val panelTag = SidepanelListFragment.getPanelTag()
             val sidePanel =
                 supportFragmentManager.findFragmentByTag(panelTag) as? SidepanelListFragment<*>

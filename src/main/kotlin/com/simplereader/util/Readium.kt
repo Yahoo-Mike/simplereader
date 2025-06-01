@@ -15,6 +15,8 @@ import org.readium.r2.streamer.parser.DefaultPublicationParser
 // EPub fonts:          https://readium.org/kotlin-toolkit/latest/guides/epub-fonts/
 // EPub preferences:    https://readium.org/kotlin-toolkit/latest/guides/navigator-preferences/
 //
+// Decorator API:       https://readium.org/architecture/proposals/008-decorator-api.html
+//
 
 /**
  * Holds the shared Readium objects and services used by the app.

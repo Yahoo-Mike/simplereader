@@ -30,8 +30,7 @@ abstract class SidepanelListFragment<T: SidepanelListItem> : Fragment() {
     abstract fun newInstance(): Fragment                // instantiate the fragment for the panel
     abstract fun createAdapter() : SidepanelAdapter<T>  // make adapter for the recycleview
     abstract fun onAddClicked()                         // what to do when user presses "add" button
-    abstract fun prepareAndObserveData()                // load recyclerview and observe for updates
-
+    abstract fun processOnViewCreated()                 // load recyclerview and observe for updates etc
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -48,8 +47,8 @@ abstract class SidepanelListFragment<T: SidepanelListItem> : Fragment() {
         binding.sidepanelList.adapter = adapter
         binding.sidepanelList.layoutManager = LinearLayoutManager(requireContext())
 
-        // initial prep for data underlying recyclerview and refreshing the recycler view
-        prepareAndObserveData()
+        // initial prep for data underlying recyclerview and refreshing the recycler view etc
+        processOnViewCreated()
 
         // watch for user pressing the "add" button
         binding.sidepanelAddButton.setOnClickListener { onAddClicked() }
@@ -84,4 +83,7 @@ abstract class SidepanelListFragment<T: SidepanelListItem> : Fragment() {
         binding.sidepanelAddButton.visibility = View.GONE
     }
 
+    fun setPanelTitle(title: String) {
+        binding.sidepanelTitle.text = title
+    }
 }

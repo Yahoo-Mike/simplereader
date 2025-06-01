@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/highlight_bubble"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/highlight_bubble_background"
+    android:padding="8dp"
+    android:elevation="4dp">
+
+    <TextView
+        android:id="@+id/btn_copy"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/copy"
+        android:clickable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:padding="8dp"
+        android:textColor="@color/black" />
+
+    <TextView
+        android:id="@+id/btn_define"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/define"
+        android:clickable="true"
+        android:foreground="?attr/selectableItemBackground"
+        android:padding="8dp"
+        android:textColor="@color/black" />
+
+
+    <View
+        android:layout_width="8dp"
+        android:layout_height="0dp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal">
+
+        <ImageView
+            android:id="@+id/color_yellow"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_circle"
+            android:contentDescription="@string/yellow_highlight"
+            app:tint="@color/highlight_yellow" />
+
+        <ImageView
+            android:id="@+id/color_blue"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_circle"
+            android:contentDescription="@string/blue_highlight"
+            app:tint="@color/highlight_blue" />
+
+        <ImageView
+            android:id="@+id/color_green"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_circle"
+            android:contentDescription="@string/green_highlight"
+            app:tint="@color/highlight_green" />
+
+        <ImageView
+            android:id="@+id/color_pink"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_circle"
+            android:contentDescription="@string/pink_highlight"
+            app:tint="@color/highlight_pink" />
+    </LinearLayout>
+</LinearLayout>

@@ -51,5 +51,11 @@
     <string name="publication_error_filesystem_forbidden">You are not allowed to access the file.</string>
     <string name="publication_error_filesystem_unexpected">An unexpected filesystem error occurred.</string>
     <string name="publication_error_filesystem_insufficient_space">There is not enough space left on the device.</string>
+    <string name="pink_highlight">Pink Highlight</string>
+    <string name="green_highlight">Green Highlight</string>
+    <string name="blue_highlight">Blue Highlight</string>
+    <string name="yellow_highlight">Yellow Highlight</string>
+    <string name="define">Define</string>
+    <string name="copy">Copy</string>
 
 </resources>

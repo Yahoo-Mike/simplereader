@@ -1,6 +1,5 @@
 package com.simplereader.bookmark
 
-
 import androidx.fragment.app.Fragment
 import com.simplereader.ui.sidepanel.SidepanelAdapter
 import com.simplereader.ui.sidepanel.SidepanelListFragment
@@ -9,8 +8,10 @@ class BookmarkListFragment : SidepanelListFragment<BookmarkListItem>() {
 
     override fun newInstance() : Fragment = BookmarkListFragment()
 
-    // prepare bookmarks for recyclerView and refresh it when bookmarks change
-    override fun prepareAndObserveData() {
+        // prepare bookmarks for recyclerView and refresh it when bookmarks change
+    override fun processOnViewCreated() {
+        setPanelTitle("Bookmarks")
+
         // initial load of existing bookmarks from the db
         val bookId = readerViewModel.bookData.value?.bookId()
         bookId?.let { readerViewModel.loadBookmarks(it) }

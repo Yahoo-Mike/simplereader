@@ -32,7 +32,6 @@ import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.shared.ExperimentalReadiumApi
-import kotlin.math.roundToInt
 
 abstract class ReaderFragment :  Fragment() {
 
@@ -46,7 +45,6 @@ abstract class ReaderFragment :  Fragment() {
     private val binding get() = _binding!!
 
     protected val readerViewModel: ReaderViewModel by activityViewModels()
-
 
     protected abstract fun publish(data: BookData)
 

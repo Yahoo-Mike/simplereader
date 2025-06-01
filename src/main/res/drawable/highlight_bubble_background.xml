@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/drawable/highlight_bubble_background.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Background color -->
+    <solid android:color="#eeeeee" />
+
+    <!-- Rounded corners -->
+    <corners android:radius="16dp" />
+
+    <!-- subtle stroke to define border -->
+    <stroke
+        android:width="2dp"
+        android:color="#999999" />
+
+    <!-- shadow effect using padding and gradient -->
+    <padding
+        android:left="4dp"
+        android:top="4dp"
+        android:right="4dp"
+        android:bottom="4dp" />
+</shape>
