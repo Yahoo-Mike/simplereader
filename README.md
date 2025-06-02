@@ -4,20 +4,16 @@ SimpleReader is an EPUB and PDF reader written in Java and Kotlin for Android.
 
 ### Features
 
-- [x] Custom Fonts
-- [x] Custom Text Size
+- [x] Custom fonts & font size
 - [x] PDF support
 - [x] Bookmarks
-- [x] Book Search
-
-#### Coming Soon...
-- [ ] In-App Dictionary (using DictionaryDev)
-- [ ] Text Highlighting
-- [ ] List / Edit / Delete Highlights
+- [x] Search
+- [x] Highlighting
+- [x] Dictionary (online only)
 
 ### Gradle
 
-First clone the folioreader library to your project:
+First clone the simplereader library to your project:
 
 ```
 mkdir libs/simplereader
@@ -83,6 +79,7 @@ reader.openBook("/data/user/0/com.myapp/files/illiad.epub")
 ### Credits
 * SimpleReader is based on a fork of the old [FolioReader](https://github.com/FolioReader/FolioReader-Android) project.
 * SimpleReader uses the [Readium](https://github.com/readium/kotlin-toolkit) modules to parse and render publications
+* SimpleReader uses dictionaryapi.dev for dictionary definitions
 
 ## License
 SimpleReader is available under the BSD license. See the [LICENSE](https://github.com/FolioReader/FolioReader-Android/blob/master/License.md) file.

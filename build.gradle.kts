@@ -15,6 +15,7 @@ val roomVersion: String by extra
 
 val gsonVersion: String by extra
 val readiumVersion: String by extra
+val retrofitVersion: String by extra
 
 plugins {
     id("com.android.library") version "8.9.3"
@@ -113,6 +114,10 @@ dependencies {
     implementation("org.readium.kotlin-toolkit:readium-streamer:${readiumVersion}")
     implementation("org.readium.kotlin-toolkit:readium-navigator:${readiumVersion}")
     implementation("org.readium.kotlin-toolkit:readium-adapter-pdfium:${readiumVersion}")
+
+    // retrofit for calls to dictionaryapi.dev
+    implementation("com.squareup.retrofit2:retrofit:${retrofitVersion}")
+    implementation("com.squareup.retrofit2:converter-gson:${retrofitVersion}")
 
 }
 

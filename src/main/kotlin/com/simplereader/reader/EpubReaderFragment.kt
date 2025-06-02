@@ -32,6 +32,7 @@ import com.simplereader.data.ReaderDatabase
 import kotlinx.coroutines.delay
 
 import com.simplereader.databinding.NavDrawerBinding
+import com.simplereader.dictionary.DictionaryBottomSheet
 import com.simplereader.highlight.Highlight
 import com.simplereader.highlight.HighlightRepository
 import com.simplereader.highlight.HighlightViewModel
@@ -58,7 +59,7 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 
 class EpubReaderFragment :  ReaderFragment() {
 
-    private lateinit var highlightRepository : HighlightRepository
+    private lateinit var highlightRepository: HighlightRepository
     private val highlightViewModel: HighlightViewModel by activityViewModels() {
         HighlightViewModelFactory(highlightRepository)
     }
@@ -285,7 +286,12 @@ class EpubReaderFragment :  ReaderFragment() {
 
             // add this fragment...
             childFragmentManager.commitNow {
-                add(R.id.fragment_reader_container, EpubNavigatorFragment::class.java, null, navigatorTag)
+                add(
+                    R.id.fragment_reader_container,
+                    EpubNavigatorFragment::class.java,
+                    null,
+                    navigatorTag
+                )
             }
         }
 
@@ -336,8 +342,10 @@ class EpubReaderFragment :  ReaderFragment() {
         // Position the bubble based on selection.rect
         selection.rect?.let { rect ->
             val params = bubble.layoutParams as FrameLayout.LayoutParams
-            params.leftMargin = (rect.left + offsetBubbleHorizontalPx).toInt() // slightly further right
-            params.topMargin = (rect.top - offsetBubbleVerticalPx).toInt().coerceAtLeast(0) // slightly higher
+            params.leftMargin =
+                (rect.left + offsetBubbleHorizontalPx).toInt() // slightly further right
+            params.topMargin =
+                (rect.top - offsetBubbleVerticalPx).toInt().coerceAtLeast(0) // slightly higher
             bubble.layoutParams = params
         }
 
@@ -364,8 +372,8 @@ class EpubReaderFragment :  ReaderFragment() {
 
         // Define button (on highlight bubble)
         bubble.findViewById<TextView>(R.id.btn_define).setOnClickListener {
-            // TODO for definitions from dictionary
-            Toast.makeText(requireContext(), "Define clicked", Toast.LENGTH_SHORT).show()
+            defineText(selection.locator.text.highlight)
+            removeSelectionBubble()
         }
 
         // Copy button (on highlight bubble)
@@ -419,10 +427,17 @@ class EpubReaderFragment :  ReaderFragment() {
     fun copyTextToClipboard(text: String?) {
         if (text == null) return    // nothing to do
 
-        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboard =
+            requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("highlighted text", text)
         clipboard.setPrimaryClip(clip)
         Toast.makeText(requireContext(), "Text copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
+    fun defineText(text: String?) {
+        if (text == null) return    // nothing to do
+
+        val dictionaryBottomSheet = DictionaryBottomSheet.newInstance(text)
+        dictionaryBottomSheet.show(parentFragmentManager, "dictionaryBottomSheet")
+    }
 }

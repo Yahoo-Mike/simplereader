@@ -13,3 +13,4 @@ extra.set("roomVersion", "2.7.1")
 
 extra.set("gsonVersion", "2.11.0")
 extra.set("readiumVersion", "3.1.1")
+extra.set("retrofitVersion", "3.0.0")
