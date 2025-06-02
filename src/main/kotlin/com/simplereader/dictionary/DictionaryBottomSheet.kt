@@ -12,6 +12,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.simplereader.databinding.DictionaryBottomSheetBinding
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -59,18 +61,26 @@ class DictionaryBottomSheet : BottomSheetDialogFragment() {
 
                 // get the definition
                 try {
-                    val response = DictionaryApi.apiService.getDefinitions(word)
-                    if (response.isNotEmpty()) {
-                        val firstDefinition = response[0].meanings
-                            ?.firstOrNull()?.definitions?.firstOrNull()?.definition
-                        binding.definitionContent.text = buildDefinitionText(response)
+                    val apiResponse = DictionaryApi.apiService.getDefinitions(word)
+                    if (apiResponse.isSuccessful) {
+                        val response = apiResponse.body()
+
+                        if (!response.isNullOrEmpty()) {
+                            binding.definitionContent.text = buildDefinitionText(response)
+                        } else {
+                            binding.definitionContent.text = "No definition found."
+                        }
                     } else {
-                        binding.definitionContent.text = "No definition found."
+                        //parse error
+                        val errorBody = apiResponse.errorBody()?.string()
+                        binding.definitionContent.text = buildErrorResponse(errorBody)
                     }
                 } catch (e: IOException) {
                     binding.definitionContent.text = "Network error. Please check your internet connection."
                 } catch (e: HttpException) {
                     binding.definitionContent.text = "Server error. Please try again later."
+                } catch (e: JsonSyntaxException) {
+                    binding.definitionContent.text = "Unexpected data format received from dictionary server."
                 } catch (e: Exception) {
                     binding.definitionContent.text = "An unexpected error occurred: ${e.message}"
                 }
@@ -100,14 +110,6 @@ class DictionaryBottomSheet : BottomSheetDialogFragment() {
 //
 //    "origin": "early 19th century: variant of earlier hollo ; related to holla.",
 //    "meanings":
-//        |
-//        +--- "partOfSpeech": "exclamation"
-//        |    "definitions":
-//        |        |
-//        |        +--- "definition": "used as a greeting or to begin a phone conversation.",
-//        |        |    "example": "hello there, Katie!",
-//        |        |    "synonyms": [],
-//        |        |    "antonyms": []
 //        |
 //        +--- "partOfSpeech": "noun",
 //        |    "definitions":
@@ -255,4 +257,31 @@ class DictionaryBottomSheet : BottomSheetDialogFragment() {
         append("\n")
     }
 
+    fun buildErrorResponse(errorBody: String?) : SpannableString {
+        val errorResponse = Gson().fromJson(errorBody, DictionaryErrorResponse::class.java)
+
+        var builder = SpannableStringBuilder()
+        var line = SpannableStringBuilder()
+
+        if (!errorResponse.title.isNullOrEmpty()) {
+            val boldSpan = StyleSpan(Typeface.BOLD)
+            line.append(errorResponse.title)
+            line.setSpan(boldSpan, 0, line.length, Spannable.SPAN_INCLUSIVE_EXCLUSIVE)
+            builder.appendLineWithIndent(line, NO_INDENT)
+            line.clear()
+        }
+
+        if (!errorResponse.title.isNullOrEmpty()) {
+            line.append(errorResponse.message)
+            builder.appendLineWithIndent(line, NO_INDENT)
+            line.clear()
+        }
+
+        if (builder.isEmpty())
+            builder.append("An unspecified error occurred.")
+
+        return SpannableString(builder)
+    }
+
 }
+
