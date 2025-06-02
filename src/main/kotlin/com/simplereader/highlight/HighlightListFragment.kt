@@ -1,7 +1,10 @@
 package com.simplereader.highlight
 
+import android.graphics.Color
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.simplereader.R
 import com.simplereader.ui.sidepanel.SidepanelAdapter
 import com.simplereader.ui.sidepanel.SidepanelListFragment
 import kotlin.getValue
@@ -34,8 +37,20 @@ class HighlightListFragment : SidepanelListFragment<HighlightListItem>() {
     // make a recyclerview adapter for Highlights
     override fun createAdapter() : SidepanelAdapter<HighlightListItem> {
         return HighlightAdapter.create(
-            onHighlightSelected = { item -> highlightViewModel.gotoHighlight(item.highlight) },
-            onDeleteConfirmed = { item -> highlightViewModel.deleteHighlight(item.highlight) }
+            onHighlightSelected = { item -> readerViewModel.gotoLocation(item.highlight.selection) },
+            onDeleteConfirmed = { item -> highlightViewModel.deleteHighlight(item.highlight) },
+            extraItemProcessing  = { binding, item, position ->
+                // tint background of item in colour of the highlight
+                val color = when (item.highlight.color) {
+                    "yellow" -> ContextCompat.getColor(requireContext(), R.color.highlight_yellow)
+                    "blue" -> ContextCompat.getColor(requireContext(), R.color.highlight_blue)
+                    "green" -> ContextCompat.getColor(requireContext(), R.color.highlight_green)
+                    "pink" -> ContextCompat.getColor(requireContext(), R.color.highlight_pink)
+                    else -> Color.TRANSPARENT
+                }
+                if (color != Color.TRANSPARENT)
+                    binding.sidepanelLabel.setBackgroundColor(color)
+            }
         )
     }
 

@@ -40,8 +40,4 @@ class HighlightViewModel(
         }
     }
 
-    fun gotoHighlight(highlight: Highlight) {
-        //TODO
-//        _gotoLocator.value = ReaderEvent(bookmark.locator)
-    }
 }

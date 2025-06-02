@@ -135,8 +135,9 @@ class ReaderViewModel(
         }
     }
 
-    fun gotoBookmark(bookmark: Bookmark) {
-        _gotoLocator.value = ReaderEvent(bookmark.locator)
+    fun gotoLocation(location: Locator) {
+        _gotoLocator.value = ReaderEvent(location)
+
     }
 
     fun onSearchResultSelected(locator: Locator) {

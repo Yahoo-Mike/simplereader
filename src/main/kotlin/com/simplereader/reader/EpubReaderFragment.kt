@@ -42,6 +42,8 @@ import com.simplereader.ui.font.LATO
 import com.simplereader.ui.font.LORA
 import com.simplereader.ui.font.RALEWAY
 import kotlinx.coroutines.launch
+import org.readium.r2.navigator.DecorableNavigator
+import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.SelectableNavigator
 import org.readium.r2.navigator.Selection
 
@@ -63,6 +65,8 @@ class EpubReaderFragment :  ReaderFragment() {
             val fragment = EpubReaderFragment()
             return fragment
         }
+
+        val navigatorTag = "EpubNavigatorFragment"
     }
 
     private val BUBBLE_VERTICAL_OFFSET_DP = 80      // dp above the selection
@@ -137,6 +141,7 @@ class EpubReaderFragment :  ReaderFragment() {
             epubNavigator?.submitPreferences(newPrefs)
         }
 
+        // setup offsets for the Selection bubble
         offsetBubbleVerticalPx = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             BUBBLE_VERTICAL_OFFSET_DP.toFloat(),
@@ -157,8 +162,7 @@ class EpubReaderFragment :  ReaderFragment() {
         val initData = data as? EpubData
             ?: throw IllegalArgumentException("Expected EpubData but got ${data::class.simpleName}")
 
-        val tag = "EpubNavigatorFragment"
-        if (childFragmentManager.findFragmentByTag(tag) == null) {
+        if (childFragmentManager.findFragmentByTag(navigatorTag) == null) {
 
             // setup the factory
             val navigatorFactory: EpubNavigatorFactory = initData.navigatorFactory
@@ -278,11 +282,11 @@ class EpubReaderFragment :  ReaderFragment() {
 
             // add this fragment...
             childFragmentManager.commitNow {
-                add(R.id.fragment_reader_container, EpubNavigatorFragment::class.java, null, tag)
+                add(R.id.fragment_reader_container, EpubNavigatorFragment::class.java, null, navigatorTag)
             }
         }
 
-        navigator = childFragmentManager.findFragmentByTag(tag) as? EpubNavigatorFragment
+        navigator = childFragmentManager.findFragmentByTag(navigatorTag) as? EpubNavigatorFragment
 
         // setup the TableOfContents in the nav drawer
         navigator?.let {
@@ -306,6 +310,13 @@ class EpubReaderFragment :  ReaderFragment() {
                 }
         }
 
+        // observe any highlights for changes & then load them from db
+        highlightViewModel.highlights.observe(viewLifecycleOwner) { highlightsList ->
+            if (highlightsList != null) {
+                applyHighlightsToPage(highlightsList)
+            }
+        }
+        highlightViewModel.loadHighlightsFromDb(initData.bookId())
     }
 
     fun showSelectionBubble(selection: Selection) {
@@ -372,12 +383,34 @@ class EpubReaderFragment :  ReaderFragment() {
         val highlight = Highlight(
             bookId = bookId,
             id = 0,              // HighlightRepository will update this for us to next available
-            label = selection.locator.text.highlight,
+            label = null,        // HighlightRespository will workout the best label
             selection = selection.locator,
             color = color
         )
 
         highlightViewModel.insertHighlight(highlight)
+    }
+
+    private fun applyHighlightsToPage(highlights: List<Highlight>) {
+        val epubNavigator = childFragmentManager
+            .findFragmentByTag(navigatorTag) as? DecorableNavigator
+
+        epubNavigator?.let { navigator ->
+            val decorations = highlights.map { highlight ->
+                Decoration(
+                    id = highlight.id.toString(),
+                    locator = highlight.selection,
+                    style = Decoration.Style.Highlight(
+                        tint = highlight.getHexColor(requireContext()),
+                        isActive = false
+                    )
+                )
+            }
+
+            lifecycleScope.launch {
+                navigator.applyDecorations(decorations, "highlights")
+            }
+        }
     }
 
 }

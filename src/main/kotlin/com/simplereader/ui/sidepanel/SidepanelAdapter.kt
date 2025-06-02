@@ -10,7 +10,8 @@ import com.simplereader.databinding.ItemSidepanelBinding
 
 class SidepanelAdapter<T: SidepanelListItem>(
     private val onSidepanelItemSelected: (T) -> Unit,
-    private val onDeleteConfirmed: (T) -> Unit
+    private val onDeleteConfirmed: (T) -> Unit,
+    private val extraItemProcessing: (ItemSidepanelBinding, T, Int) -> Unit
 ) : ListAdapter<T, SidepanelAdapter<T>.ViewHolder>(createDiffCallback()) {
 
     private val pendingDeletePositions = mutableSetOf<Int>()
@@ -49,7 +50,10 @@ class SidepanelAdapter<T: SidepanelListItem>(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position), position)
+        val item = getItem(position)
+        holder.bind(item, position)
+
+        extraItemProcessing(holder.binding, item, position)
     }
 
     fun markPendingDelete(position: Int) {

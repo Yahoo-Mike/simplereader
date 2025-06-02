@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -22,7 +21,6 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
@@ -62,13 +60,10 @@ import com.simplereader.book.loadProgressFromDb
 import com.simplereader.bookmark.BookmarkListFragment
 import com.simplereader.bookmark.BookmarkRepository
 import com.simplereader.highlight.HighlightListFragment
-import com.simplereader.highlight.HighlightRepository
-import com.simplereader.highlight.HighlightViewModel
 import com.simplereader.search.SearchFragment
 import com.simplereader.search.SearchViewModel
 import com.simplereader.settings.SettingsRepository
 import com.simplereader.ui.sidepanel.SidepanelListFragment
-import org.readium.r2.navigator.SelectableNavigator
 import kotlin.math.roundToInt
 
 @OptIn(InternalReadiumApi::class)
