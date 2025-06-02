@@ -10,6 +10,9 @@
 package com.simplereader.reader
 
 import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Menu
@@ -367,8 +370,8 @@ class EpubReaderFragment :  ReaderFragment() {
 
         // Copy button (on highlight bubble)
         bubble.findViewById<TextView>(R.id.btn_copy).setOnClickListener {
-            // TODO to copy the selected text to the clipboard
-            Toast.makeText(requireContext(), "Copy clicked", Toast.LENGTH_SHORT).show()
+            copyTextToClipboard(selection.locator.text.highlight)
+            // don't bother removing selection bubble, in case user wants to do something else...
         }
     }
 
@@ -411,6 +414,15 @@ class EpubReaderFragment :  ReaderFragment() {
                 navigator.applyDecorations(decorations, "highlights")
             }
         }
+    }
+
+    fun copyTextToClipboard(text: String?) {
+        if (text == null) return    // nothing to do
+
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("highlighted text", text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(requireContext(), "Text copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
 }
