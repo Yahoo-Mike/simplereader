@@ -15,6 +15,7 @@
         <!-- adjustPan is required to stabilise the SearchUI -->
         <activity
             android:name="com.simplereader.reader.ReaderActivity"
+            android:theme="@style/Theme.SimpleReader"
             android:windowSoftInputMode="adjustPan"/>
 
     </application>
