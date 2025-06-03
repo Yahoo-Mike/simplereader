@@ -43,8 +43,8 @@ If you forget to do this, then you might get an error message like this:
 Invalid build configuration. Attempt to create a global synthetic for 'Record desugaring' without a global-synthetics consumer.
 ```
 ### Desugaring
-If the Readium libraries insist on being desugared, then in the :app gradle.build.kts:
-```groovy
+If the Readium libraries insist on being desugared, then in the :app build.gradle.kts:
+```kotlin
 android {
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -55,18 +55,29 @@ dependencies {
   coreLibraryDesugaring( "com.android.tools:desugar_jdk_libs:2.1.5" )
 }
 ```
+or in the :app build.gradle (groovy):
+```groovy
+android {
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+   }
+}
 
+dependencies {
+  coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5"
+}
+```
 
 ### Usage
 
 Get singleton object of `SimpleReader`:
 
 ```java
-SimpleReader reader = SimpleReader.get();
+SimpleReader reader = SimpleReader.getInstance();
 ```
 or for kotlin
 ```kotlin
-val reader = SimpleReader.get()
+val reader = SimpleReader.getInstance()
 ```
 
 Call the function `openBook()`:
