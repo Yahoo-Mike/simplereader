@@ -60,7 +60,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_home"
+                        android:src="@drawable/ic_hamburger"
                         android:contentDescription="@string/table_of_contents"/>
 
                 </LinearLayout>

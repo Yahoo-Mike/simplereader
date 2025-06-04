@@ -21,6 +21,9 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
@@ -434,6 +437,10 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
             }
         }
 
+        // show system nav and status bars
+        val windowInsetsController = ViewCompat.getWindowInsetsController(window.decorView)
+        windowInsetsController?.show(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars())
+
         if (showMsecs > 0) {
             autoHideAppBarAfterDelay(showMsecs)
         }
@@ -447,6 +454,13 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
                 binding.appBarLayout.visibility = View.GONE
             }
             .start()
+
+        // Hide the system bars (status bar and navigation bar)
+        val windowInsetsController = ViewCompat.getWindowInsetsController(window.decorView)
+        windowInsetsController?.let { controller ->
+            controller.hide(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
     }
 
     // hide the appBar after "delayMsecs" milliseconds
@@ -459,9 +473,6 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     fun showSidepanel(panelFragment: SidepanelListFragment<*>) {
         val panel = findViewById<FrameLayout>(R.id.side_panel_container)
         if (panel.visibility != View.VISIBLE) {
-
-            // hide the appBar, so there's more room for the bookmark/highlight list
-            hideAppBar()
 
             panel.visibility = View.VISIBLE
             panel.startAnimation(AnimationUtils.loadAnimation(this, R.anim.slide_in_right))
