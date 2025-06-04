@@ -118,7 +118,7 @@
 
         <!-- highlight/define bubble -->
         <FrameLayout
-            android:id="@+id/highlight_bubble_container"
+            android:id="@+id/selection_bubble_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
 

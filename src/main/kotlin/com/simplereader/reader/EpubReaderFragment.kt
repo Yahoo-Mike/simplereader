@@ -13,6 +13,7 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.RectF
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Menu
@@ -22,6 +23,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
 import android.view.ActionMode
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commitNow
@@ -73,7 +75,7 @@ class EpubReaderFragment :  ReaderFragment() {
         val navigatorTag = "EpubNavigatorFragment"
     }
 
-    private val BUBBLE_VERTICAL_OFFSET_DP = 80      // dp above the selection
+    private val BUBBLE_VERTICAL_OFFSET_DP = 20      // dp above the selection
     private val BUBBLE_HORIZONTAL_OFFSET_DP = 40    // dp right of the selection
     private var offsetBubbleVerticalPx = 0          // px offset (calculated in onViewCreated)
     private var offsetBubbleHorizontalPx = 0
@@ -330,24 +332,17 @@ class EpubReaderFragment :  ReaderFragment() {
 
     fun showSelectionBubble(selection: Selection) {
         // bubble container lives in the parent reader_activity
-        val container = requireActivity().findViewById<FrameLayout>(R.id.highlight_bubble_container)
+        val container = requireActivity().findViewById<FrameLayout>(R.id.selection_bubble_container)
 
         // Inflate the highlight bubble layout
-        val bubble = layoutInflater.inflate(R.layout.highlight_bubble, container, false)
+        val bubble = layoutInflater.inflate(R.layout.selection_bubble, container, false)
 
-        // Position the bubble near the selection (using selection.rect)
+        // recalculate the position of the bubble (so it's offset from selected text
+        bubble.layoutParams = calcBubblePosition(container, bubble, selection)
+
+        // add the bubble
         container.removeAllViews()
         container.addView(bubble)
-
-        // Position the bubble based on selection.rect
-        selection.rect?.let { rect ->
-            val params = bubble.layoutParams as FrameLayout.LayoutParams
-            params.leftMargin =
-                (rect.left + offsetBubbleHorizontalPx).toInt() // slightly further right
-            params.topMargin =
-                (rect.top - offsetBubbleVerticalPx).toInt().coerceAtLeast(0) // slightly higher
-            bubble.layoutParams = params
-        }
 
         // Handle color selections
         bubble.findViewById<ImageView>(R.id.color_yellow).setOnClickListener {
@@ -384,9 +379,49 @@ class EpubReaderFragment :  ReaderFragment() {
     }
 
     fun removeSelectionBubble() {
-        val container = requireActivity().findViewById<FrameLayout>(R.id.highlight_bubble_container)
+        val container = requireActivity().findViewById<FrameLayout>(R.id.selection_bubble_container)
         container.removeAllViews()
     }
+
+    private fun calcBubblePosition(container: FrameLayout, bubble:View, selection: Selection) : ViewGroup.LayoutParams {
+
+        // Manually measure the bubble
+        bubble.measure(
+            View.MeasureSpec.makeMeasureSpec(container.width, View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(container.height, View.MeasureSpec.AT_MOST)
+        )
+        val bubbleWidth = bubble.measuredWidth
+        val bubbleHeight = bubble.measuredHeight
+
+        // Calculate horizontal position
+        val containerWidth = container.width
+        val containerHeight = container.height
+        var proposedLeftMargin = ((selection.rect?.left ?: 0f) + offsetBubbleHorizontalPx).toInt()
+        proposedLeftMargin = proposedLeftMargin.coerceAtMost(containerWidth - bubbleWidth)
+        proposedLeftMargin = proposedLeftMargin.coerceAtLeast(0)
+
+        // Calculate vertical position
+        val rect = selection.rect ?: RectF(0f, 0f, 0f, 0f)
+        val topAbove = (rect.top - offsetBubbleVerticalPx - bubbleHeight).toInt()
+        val topBelow = (rect.bottom + offsetBubbleVerticalPx).toInt()
+
+        val proposedTopMargin = if (topAbove >= 0) {
+            topAbove
+        } else {
+            topBelow.coerceAtMost(containerHeight - bubbleHeight)
+        }
+
+        // Set layout params
+        val params = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+        params.leftMargin = proposedLeftMargin
+        params.topMargin = proposedTopMargin
+
+        return params
+    }
+
 
     fun saveHighlight(selection: Selection, color: String) {
         val bookId = readerViewModel.bookData.value?.bookId() ?: return
