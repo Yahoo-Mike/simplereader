@@ -27,9 +27,12 @@ class DictionaryBottomSheet : BottomSheetDialogFragment() {
     companion object {
         private const val ARG_WORD = "arg_word"
 
-        fun newInstance(word: String): DictionaryBottomSheet {
+        fun newInstance(selection: String): DictionaryBottomSheet {
             val fragment = DictionaryBottomSheet()
             val args = Bundle()
+
+            // limit a dictionary search to the first whole word in any selection
+            val word = selection.trim().split("\\s+".toRegex()).firstOrNull() ?: ""
             args.putString(ARG_WORD, word)
             fragment.arguments = args
             return fragment
