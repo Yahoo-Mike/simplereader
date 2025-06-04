@@ -2,7 +2,7 @@ package com.simplereader.reader
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -18,9 +18,9 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
@@ -81,8 +81,6 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     private lateinit var readerViewModel: ReaderViewModel
     private val searchViewModel: SearchViewModel by viewModels()
 
-    private lateinit var navDrawerToggle: ActionBarDrawerToggle
-
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
 
     private var savedInstanceState: Bundle? = null
@@ -138,18 +136,19 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
         // setup the action bar
         setSupportActionBar(binding.toolbar)
-        autoHideAppBarAfterDelay(FIVE_SECONDS)
+        supportActionBar?.setDisplayShowTitleEnabled(false)  // We'll handle the title ourselves
 
-        //Set up the hamburger toggle with DrawerLayout and Toolbar
-        navDrawerToggle = ActionBarDrawerToggle(
-            this,
-            binding.drawerLayout,
-            binding.toolbar,
-            R.string.navigation_drawer_open,
-            R.string.navigation_drawer_close
-        )
-        binding.drawerLayout.addDrawerListener(navDrawerToggle)
-        navDrawerToggle.syncState()
+        //Set up the back button & toc hamburger on the appbar
+        binding.backButton.setOnClickListener {
+            onBackPressedDispatcher.onBackPressed() // exit SimpleReader
+        }
+
+        binding.tocHamburger.setOnClickListener {
+            binding.drawerLayout.openDrawer(GravityCompat.START)
+        }
+
+        // autohide the toolbar after a while
+        autoHideAppBarAfterDelay(FIVE_SECONDS)
 
         // when user presses system Back button, dismiss Bookmark panel if it's open
         val backCallback = object : OnBackPressedCallback(true) {
@@ -166,28 +165,35 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         this.savedInstanceState = savedInstanceState
         // note: fragment is not started until we know which type to start...
 
-        // Register the permission launcher
-        requestPermissionLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted ->
-            if (isGranted) {
+        // check permissions
+        // only need to ask for write access for sdk 28 & 29
+        // don't need to ask for internet accesss, because the Manifest statement is sufficient
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ (SDK 30+) - skip requesting WRITE_EXTERNAL_STORAGE
+            openBook()
+        } else {
+            // Register the permission launcher
+            requestPermissionLauncher = registerForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { isGranted ->
+                if (isGranted) {
+                    openBook()
+                } else { // User denied permission
+                    Toast.makeText(this, "cannot access storage", Toast.LENGTH_LONG).show()
+                    finish()
+                    return@registerForActivityResult
+                }
+            }
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED
+            ) {
+                // permission already granted, so call openBook()
                 openBook()
-            } else { // User denied permission
-                Toast.makeText(this, "cannot access storage", Toast.LENGTH_LONG).show()
-                finish()
-                return@registerForActivityResult
+            } else {  // request permission, if granted the callback will call openBook()
+                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
         }
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            // permission already granted, so call openBook()
-            openBook()
-        } else {  // request permission, if granted the callback will call openBook()
-            requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
-
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -398,24 +404,6 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         initData.loadProgressFromDb(readerViewModel)
 
         return Try.Companion.success(initData)
-    }
-
-    override fun onPostCreate(savedInstanceState: Bundle?) {
-        super.onPostCreate(savedInstanceState)
-        Log.v(LOG_TAG, "-> onPostCreate")
-
-        navDrawerToggle.syncState()
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        navDrawerToggle.onConfigurationChanged(newConfig)
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        Log.v(LOG_TAG, "-> onSaveInstanceState")
-
     }
 
     // listener for a tap in the ReaderFragment

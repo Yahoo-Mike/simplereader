@@ -14,12 +14,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.simplereader.R
 
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.launchIn
@@ -130,8 +131,8 @@ abstract class ReaderFragment :  Fragment() {
     // change the titleBar text
     private fun changeTitleBarText(navigator: VisualNavigator?, title: String?) {
         navigator?.let {
-            val displayTitle = title?.takeIf { it.isNotBlank() } ?: "SimpleReader"
-            (requireActivity() as AppCompatActivity).supportActionBar?.title = displayTitle
+            val toolbarTitle = requireActivity().findViewById<TextView>(R.id.toolbar_title)
+            toolbarTitle.text = title
         }
     }
 

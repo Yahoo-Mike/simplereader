@@ -57,5 +57,8 @@
     <string name="yellow_highlight">Yellow Highlight</string>
     <string name="define">Define</string>
     <string name="copy">Copy</string>
+    <string name="exit">Exit</string>
+    <string name="table_of_contents">Table of Contents</string>
+    <string name="loading">Loading…</string>
 
 </resources>

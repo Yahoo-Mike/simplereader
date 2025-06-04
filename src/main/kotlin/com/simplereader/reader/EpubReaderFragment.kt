@@ -29,9 +29,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.simplereader.R
 import com.simplereader.data.ReaderDatabase
+import com.simplereader.databinding.TocDrawerBinding
 import kotlinx.coroutines.delay
 
-import com.simplereader.databinding.NavDrawerBinding
 import com.simplereader.dictionary.DictionaryBottomSheet
 import com.simplereader.highlight.Highlight
 import com.simplereader.highlight.HighlightRepository
@@ -302,7 +302,7 @@ class EpubReaderFragment :  ReaderFragment() {
             val activityBinding = (requireActivity() as ReaderActivity).binding
             val drawerLayout = activityBinding.drawerLayout
             val navigationView = activityBinding.navigationView
-            val navDrawerBinding = NavDrawerBinding.inflate(layoutInflater, navigationView, false)
+            val navDrawerBinding = TocDrawerBinding.inflate(layoutInflater, navigationView, false)
             navigationView.addView(navDrawerBinding.root)
 
             // setup the Home item

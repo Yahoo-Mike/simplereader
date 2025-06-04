@@ -38,6 +38,44 @@
                 android:layout_height="?attr/actionBarSize"
                 app:contentInsetStartWithNavigation="0dp">
 
+                <LinearLayout
+                    android:id="@+id/custom_toolbar_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <!-- Back Arrow Button -->
+                    <ImageButton
+                        android:id="@+id/back_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_back_arrow"
+                        android:contentDescription="@string/exit"/>
+
+                    <!-- Hamburger Table of Contents Button -->
+                    <ImageButton
+                        android:id="@+id/toc_hamburger"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_home"
+                        android:contentDescription="@string/table_of_contents"/>
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/toolbar_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/loading"
+                    android:textStyle="bold"
+                    android:paddingStart="8dp"
+                    android:textColor="@color/primary_color"
+                    android:textAppearance="?attr/textAppearanceSubtitle1"
+                    android:layout_gravity="start" />
+
                 <TextView
                     android:id="@+id/progress_indicator"
                     android:layout_width="wrap_content"

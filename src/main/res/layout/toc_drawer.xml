@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/tocHeaderLayout"
+    android:id="@+id/navDrawerContent"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="?android:attr/windowBackground">
 
-
-    <!-- Faux "Home" menu item -->
+    <!-- Faux "Home" menu item  -->
     <LinearLayout
         android:id="@+id/navHomeItem"
         android:layout_width="match_parent"
@@ -21,26 +21,32 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_home"
-            android:contentDescription="@string/home"
+            android:contentDescription="@string/exit"
+            android:src="@drawable/ic_back_arrow"
             app:tint="@color/default_theme_accent_color" />
 
         <TextView
-            android:id="@+id/navHomeText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/home"
+            android:text="@string/table_of_contents"
             android:textAppearance="?attr/textAppearanceListItem"
             android:layout_marginStart="32dp"
             android:textColor="?android:attr/textColorPrimary" />
     </LinearLayout>
 
-    <!-- TOC RecyclerView -->
+    <!-- Divider -->
+    <com.google.android.material.divider.MaterialDivider
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:dividerThickness="1dp"
+        app:dividerColor="@color/design_default_color_secondary" />
+
+    <!-- Scrollable TOC -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/tocRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:paddingTop="8dp"
-        android:clipToPadding="false" />
+        android:clipToPadding="false"
+        android:paddingTop="8dp"/>
 </LinearLayout>
