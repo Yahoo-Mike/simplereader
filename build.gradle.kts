@@ -18,9 +18,9 @@ val readiumVersion: String by extra
 val retrofitVersion: String by extra
 
 plugins {
-    id("com.android.library") version "8.9.3"
-    id("org.jetbrains.kotlin.android") version "2.1.20"
-    id("com.google.devtools.ksp") version "2.1.20-1.0.32"
+    id("com.android.library") version "8.12.1"
+    id("org.jetbrains.kotlin.android") version "2.2.10"
+    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
 }
 
 group = "com.simplereader"
@@ -28,7 +28,7 @@ version = "1.0.0"
 
 android {
     namespace = "com.simplereader"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk    =  28
