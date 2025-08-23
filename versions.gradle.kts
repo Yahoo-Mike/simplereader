@@ -1,4 +1,4 @@
-extra.set("kotlinVersion", "2.1.20")
+extra.set("kotlinVersion", "2.2.10")
 
 extra.set("activityVersion", "1.10.1")
 extra.set("appcompatVersion", "1.7.1")
