@@ -18,7 +18,7 @@ val readiumVersion: String by extra
 val retrofitVersion: String by extra
 
 plugins {
-    id("com.android.library") version "8.12.1"
+    id("com.android.library") version "8.12.2"
     id("org.jetbrains.kotlin.android") version "2.2.10"
     id("com.google.devtools.ksp") version "2.2.10-2.0.2"
 }
