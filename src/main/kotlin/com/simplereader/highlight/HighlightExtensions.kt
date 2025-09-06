@@ -2,6 +2,7 @@ package com.simplereader.highlight
 
 import org.json.JSONObject
 import org.readium.r2.shared.publication.Locator
+import java.time.Instant
 
 // Highlight -> HighlightEntity
 fun Highlight.toEntity(): HighlightEntity {
@@ -11,7 +12,8 @@ fun Highlight.toEntity(): HighlightEntity {
         id = id,
         label = label ?: "\"Highlight ${this.id}\"",
         selection = selection.toJSON().toString(),
-        color = color
+        color = color,
+        lastUpdated = Instant.now().toEpochMilli()
     )
 }
 

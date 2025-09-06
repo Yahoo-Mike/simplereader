@@ -5,6 +5,7 @@ import com.simplereader.model.BookData
 import com.simplereader.reader.ReaderViewModel
 import org.json.JSONObject
 import org.readium.r2.shared.publication.Locator
+import java.time.Instant
 
 // BookData -> BookDataEntity
 fun BookData.toBookEntity(): BookDataEntity {
@@ -14,7 +15,8 @@ fun BookData.toBookEntity(): BookDataEntity {
         bookId = hashId(),
         pubFile = getFileName(),
         mediaType = getMediaType().let { gson.toJson(it) },
-        currentProgress = currentLocation?.toJSON()?.toString()
+        currentProgress = currentLocation?.toJSON()?.toString(),
+        lastUpdated = Instant.now().toEpochMilli()
     )
 }
 

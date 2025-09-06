@@ -8,5 +8,6 @@ data class BookDataEntity (
     @PrimaryKey val bookId: String, // hash
     val pubFile: String,            // physical location of this book
     val mediaType: String,          // EDF/PDF serialized MediaType
-    val currentProgress: String?    // serialized Locator of current location
+    val currentProgress: String?,   // serialized Locator of current location
+    val lastUpdated: Long           // timestamp of last update
 )

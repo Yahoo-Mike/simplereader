@@ -2,6 +2,7 @@ package com.simplereader.bookmark
 
 import org.json.JSONObject
 import org.readium.r2.shared.publication.Locator
+import java.time.Instant
 
 // Bookmark -> BookmarkEntity
 fun Bookmark.toEntity(): BookmarkEntity {
@@ -10,7 +11,8 @@ fun Bookmark.toEntity(): BookmarkEntity {
         bookId = bookId,
         id = id,
         label = label,
-        locator = locator.toJSON().toString()
+        locator = locator.toJSON().toString(),
+        lastUpdated = Instant.now().toEpochMilli()
     )
 }
 
