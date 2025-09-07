@@ -12,9 +12,9 @@
         tools:showAsAction="always" />
 
     <item
-        android:id="@+id/itemSettings"
+        android:id="@+id/itemFonts"
         android:icon="@drawable/icon_font"
-        android:title="@string/menu_item_settings"
+        android:title="@string/menu_item_fonts"
         app:showAsAction="ifRoom"
         tools:showAsAction="always" />
 
@@ -31,4 +31,13 @@
         android:title="@string/highlight"
         app:showAsAction="ifRoom"
         tools:showAsAction="always" />
+
+    <item
+        android:id="@+id/itemSettings"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/menu_item_settings"
+        app:showAsAction="ifRoom"
+        app:iconTint="@color/primary_color"
+        tools:showAsAction="always" />
+
 </menu>

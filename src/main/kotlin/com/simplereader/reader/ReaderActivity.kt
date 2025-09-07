@@ -39,7 +39,7 @@ import com.simplereader.model.BookData
 import com.simplereader.model.EpubData
 import com.simplereader.model.PdfData
 import com.simplereader.reader.ReaderFragment.OnSingleTapListener
-import com.simplereader.settings.SettingsBottomSheet
+import com.simplereader.settings.FontsBottomSheet
 import kotlinx.coroutines.launch
 import org.readium.adapter.pdfium.navigator.PdfiumEngineProvider
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
@@ -65,6 +65,7 @@ import com.simplereader.bookmark.BookmarkRepository
 import com.simplereader.highlight.HighlightListFragment
 import com.simplereader.search.SearchFragment
 import com.simplereader.search.SearchViewModel
+import com.simplereader.settings.SettingsBottomSheet
 import com.simplereader.settings.SettingsRepository
 import com.simplereader.ui.sidepanel.SidepanelListFragment
 import kotlin.math.roundToInt
@@ -110,15 +111,10 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
         readium = Readium(applicationContext)
 
-        val bookDao = ReaderDatabase.Companion.getInstance(applicationContext).bookDao()
-        val bookRepository = BookRepository(bookDao)
-
-        val bookmarkDao = ReaderDatabase.Companion.getInstance(applicationContext).bookmarkDao()
-        val bookmarkRepository = BookmarkRepository(bookmarkDao)
-
-        val settingsDao =
-            ReaderDatabase.Companion.getInstance(applicationContext).readerSettingsDao()
-        val settingsRepository = SettingsRepository(settingsDao)
+        val db = ReaderDatabase.Companion.getInstance(applicationContext)
+        val bookRepository = BookRepository(db.bookDao())
+        val bookmarkRepository = BookmarkRepository(db.bookmarkDao())
+        val settingsRepository = SettingsRepository(db, db.readerSettingsDao())
 
         readerViewModel = ViewModelProvider(
             this,
@@ -212,8 +208,8 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
                 true
             }
 
-            R.id.itemSettings -> {
-                val sheet = SettingsBottomSheet()
+            R.id.itemFonts -> {
+                val sheet = FontsBottomSheet()
                 sheet.show(supportFragmentManager, sheet.tag)
                 true
             }
@@ -225,6 +221,12 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
             R.id.itemHighlight -> {
                 showSidepanel(HighlightListFragment())
+                true
+            }
+
+            R.id.itemSettings -> {
+                val sheet = SettingsBottomSheet()
+                sheet.show(supportFragmentManager, sheet.tag)
                 true
             }
 
@@ -351,7 +353,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        menu?.findItem(R.id.itemSettings)?.isVisible = showSettings
+        menu?.findItem(R.id.itemFonts)?.isVisible = showSettings
         menu?.findItem(R.id.itemHighlight)?.isVisible = showHighlights
         return super.onPrepareOptionsMenu(menu)
     }

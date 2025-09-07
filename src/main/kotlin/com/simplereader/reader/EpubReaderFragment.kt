@@ -137,7 +137,7 @@ class EpubReaderFragment :  ReaderFragment() {
 
         // watch for changes in the Settings
         readerViewModel.readerSettings.observe(viewLifecycleOwner) { settings ->
-            // user changed settings using SettingsBottomSheet,
+            // user changed settings using FontsBottomSheet,
             // so now re-render the current publication
             val newPrefs = EpubPreferences(
                 fontFamily = settings?.font ?: Settings.DEFAULT_FONT,

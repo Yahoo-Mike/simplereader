@@ -74,6 +74,9 @@ dependencies {
     // core
     implementation("androidx.appcompat:appcompat:${appcompatVersion}")
 
+    // crypto (for passwords)
+    implementation("androidx.security:security-crypto:1.1.0")
+
     //constraint, recycler and material
     implementation("androidx.constraintlayout:constraintlayout:${constraintLayoutVersion}")
     implementation("androidx.recyclerview:recyclerview:${recyclerviewVersion}")

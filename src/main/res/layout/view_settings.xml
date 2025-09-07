@@ -1,65 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/container"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/settings_container"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:padding="16dp">
 
-    <ImageView
-        android:id="@+id/view_config_iv_label_font_small"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_margin="8dp"
-        android:contentDescription="@string/font_small"
-        android:scaleType="center"
-        app:srcCompat="@drawable/ic_format_font_black_24dp"
-        app:tint="@color/grey_color"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/divider" />
+    <!-- Vertical guideline to align labels on the right and inputs on the left -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="148dp" />
 
-    <SeekBar
-        android:id="@+id/view_settings_font_size_seek_bar"
+    <!-- Title -->
+    <TextView
+        android:id="@+id/title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:max="4"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/view_config_iv_label_font_small"
-        app:layout_constraintEnd_toStartOf="@+id/view_config_iv_label_font_big"
-        app:layout_constraintBottom_toTopOf="@+id/divider" />
-
-    <ImageView
-        android:id="@+id/view_config_iv_label_font_big"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_margin="8dp"
-        android:contentDescription="@string/font_big"
-        android:scaleType="center"
-        app:srcCompat="@drawable/ic_format_font_black_36dp"
-        app:tint="@color/grey_color"
-        app:layout_constraintTop_toTopOf="parent"
+        android:gravity="start"
+        android:text="@string/settings_synch"
+        android:textSize="20sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/divider" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <View
-        android:id="@+id/divider"
+    <!-- Server -->
+    <TextView
+        android:id="@+id/serverLabel"
         android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:background="@color/grey_color"
-        app:layout_constraintTop_toBottomOf="@+id/view_config_iv_label_font_big"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="12dp"/>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/fontListRecyclerView"
-        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:overScrollMode="never"
-        app:layout_constraintTop_toBottomOf="@+id/divider"
+        android:layout_marginTop="24dp"
+        android:gravity="end"
+        android:text="@string/settings_server"
+        app:layout_constraintEnd_toStartOf="@+id/guideline"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/title" />
+
+    <EditText
+        android:id="@+id/serverTxtBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:hint="@string/settings_server_hint"
+        android:inputType="textUri|textNoSuggestions"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/guideline"
+        app:layout_constraintTop_toBottomOf="@+id/title"
+        tools:ignore="Autofill" />
+
+    <!-- Username -->
+    <TextView
+        android:id="@+id/userLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:gravity="end"
+        android:text="@string/settings_user"
+        app:layout_constraintEnd_toStartOf="@+id/guideline"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/serverLabel" />
+
+    <EditText
+        android:id="@+id/userTxtBox"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="16"
+        android:inputType="textPersonName|textNoSuggestions"
+        app:layout_constraintTop_toBottomOf="@id/serverTxtBox"
+        app:layout_constraintStart_toStartOf="@+id/guideline"
+        tools:ignore="Autofill" />
+
+    <!-- Password -->
+
+    <TextView
+        android:id="@+id/passwordLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:gravity="end"
+        android:text="@string/settings_password"
+        app:layout_constraintEnd_toStartOf="@+id/guideline"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/userLabel" />
+
+    <EditText
+        android:id="@+id/passwordTxtBox"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="16"
+        android:inputType="textPassword"
+        app:layout_constraintTop_toBottomOf="@id/userTxtBox"
+        app:layout_constraintStart_toStartOf="@+id/guideline"
+        tools:ignore="Autofill" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
