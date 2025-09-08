@@ -114,7 +114,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         val db = ReaderDatabase.Companion.getInstance(applicationContext)
         val bookRepository = BookRepository(db.bookDao())
         val bookmarkRepository = BookmarkRepository(db.bookmarkDao())
-        val settingsRepository = SettingsRepository(db, db.readerSettingsDao())
+        val settingsRepository = SettingsRepository(db, db.settingsDao())
 
         readerViewModel = ViewModelProvider(
             this,

@@ -23,7 +23,7 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
     private val viewModel: ReaderViewModel by activityViewModels()
 
     private val db by lazy { ReaderDatabase.getInstance(requireContext()) }
-    private val dao by lazy { db.readerSettingsDao() }
+    private val dao by lazy { db.settingsDao() }
     private val repo by lazy { SettingsRepository(db, dao) } // you already have this
 
     // Keep the originals to compare when bottomsheet is dismissed
