@@ -9,6 +9,7 @@ data class BookDataEntity (
     val pubFile: String,            // physical location of this book
     val mediaType: String,          // EDF/PDF serialized MediaType
     val currentProgress: String?,   // serialized Locator of current location
-    val fileId: String? = null,     // sync server's fileId for this book
+    val sha256: String?,            // checksum of file at pubFile  (used for syncing)
+    val filesize: Long,             // filesize of file at pubFile  (used for syncing)
     val lastUpdated: Long           // timestamp of last update
 )

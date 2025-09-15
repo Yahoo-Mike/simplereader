@@ -2,20 +2,35 @@ package com.simplereader.settings
 
 import android.content.DialogInterface
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.Toast
+import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.room.withTransaction
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
+
 import com.simplereader.R
 import com.simplereader.data.ReaderDatabase
 import com.simplereader.databinding.ViewSettingsBinding
 import com.simplereader.reader.ReaderViewModel
-import kotlinx.coroutines.launch
+import com.simplereader.sync.SyncManager
+import com.simplereader.util.normaliseServerBase
 
 class SettingsBottomSheet : BottomSheetDialogFragment() {
+
+    private val syncManager: SyncManager by lazy { SyncManager.getInstance(requireContext().applicationContext) }
 
     private var _binding: ViewSettingsBinding? = null
     private val binding get() = _binding!!
@@ -57,31 +72,35 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
     }
 
     // Normalize helper: trim & convert "" to null
-    private fun norm(s: String?): String? =
-        s?.trim().takeUnless { it.isNullOrEmpty() }
+    private fun norm(s: String?): String? = s?.trim().takeUnless { it.isNullOrEmpty() }
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        // Guard: view could already be gone in some edge cases
+
+        // Guard: just in case view is gone
         val b = _binding ?: return
 
-        val newServer = norm(b.serverTxtBox.text?.toString())
-        val newUser   = norm(b.userTxtBox.text?.toString())
-        val newPw     = norm(b.passwordTxtBox.text?.toString())
+        val pendingServer = norm(b.serverTxtBox.text?.toString())
+        val pendingUser   = norm(b.userTxtBox.text?.toString())
+        val pendingPw     = norm(b.passwordTxtBox.text?.toString())
 
-        val serverChanged = newServer != origServer
-        val userChanged   = newUser   != origUser
-        val passChanged   = newPw     != origPassword
+        val serverChanged = pendingServer != origServer
+        val userChanged   = pendingUser   != origUser
+        val passChanged   = pendingPw     != origPassword
 
         if (!(serverChanged || userChanged || passChanged)) return
 
         // Persist changes
         lifecycleScope.launch {
-            if (serverChanged || userChanged) {
-                repo.updateOrInsertServerAndUser(newServer, newUser)
-            }
-            if (passChanged) {
-                repo.updateOrInsertPassword(newPw) // encrypts & upserts IV/CT
+            withContext(NonCancellable) { // ensure this gets done despite onDestroy()
+                db.withTransaction {
+                    if (serverChanged || userChanged) {
+                        repo.updateOrInsertServerAndUser(pendingServer, pendingUser)
+                    }
+                    if (passChanged) {
+                        repo.updateOrInsertPassword(pendingPw) // encrypts & upserts IV/CT
+                    }
+                }
             }
         }
     }
@@ -109,7 +128,93 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
             // Populate UI
             binding.serverTxtBox.setText(origServer.orEmpty())
             binding.userTxtBox.setText(origUser.orEmpty())
-            binding.passwordTxtBox.setText(origPassword.orEmpty())        }
+            binding.passwordTxtBox.setText(origPassword.orEmpty())
+
+            updateButtonsEnabled() // enable/disable based on fields
+        }
+
+        // Re-validate buttons when fields change
+        val watcher = { _: CharSequence?, _: Int, _: Int, _: Int -> updateButtonsEnabled() }
+        binding.serverTxtBox.doOnTextChanged(watcher)
+        binding.userTxtBox.doOnTextChanged(watcher)
+        binding.passwordTxtBox.doOnTextChanged(watcher)
+
+        // Server Test: POST "/" expecting "server up"
+        binding.btnServerTest.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val serverUrl = binding.serverTxtBox.text.toString()
+                val ok = serverTest(serverUrl)
+                val msg = if (ok) getString(R.string.server_test_ok) else getString(R.string.server_test_fail)
+                binding.syncStatus.text = msg
+            }
+        }
+
+        // Sync Now: guarded by SyncManager’s mutex; enqueue WorkManager
+        binding.btnSyncNow.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val started = syncManager.syncNow()
+                if (started) {
+                    binding.syncStatus.text = getString(R.string.server_sync_start)
+                } else {
+                    val msg = "sync already running"
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
+
+    private fun updateButtonsEnabled() {
+        val hasServer = binding.serverTxtBox.text?.isNotBlank() == true
+        val hasUser   = binding.userTxtBox.text?.isNotBlank() == true
+        val hasPass   = binding.passwordTxtBox.text?.isNotBlank() == true
+
+        // Server Test only needs server URL; Sync Now needs all three
+        binding.btnServerTest.isEnabled = hasServer
+        binding.btnSyncNow.isEnabled = hasServer && hasUser && hasPass
+    }
+
+    // Health check: POST “/” and look for “server up”. No auth required.
+    private suspend fun serverTest(serverUrl: String): Boolean = withContext(Dispatchers.IO) {
+        if (serverUrl.isBlank()) return@withContext false
+        val url = normaliseServerBase(serverUrl)
+
+        if (url != serverUrl) {
+            withContext(Dispatchers.Main) { // ensure we are on the main UI thread
+                // update the textbox with our normalised base address
+                binding.serverTxtBox.setText(url)
+                binding.serverTxtBox.setSelection(binding.serverTxtBox.text.length) // move cursor to end of string
+            }
+        }
+
+        val client = OkHttpClient.Builder()
+            .callTimeout(5, TimeUnit.SECONDS)
+            .build()
+
+        val req = Request.Builder()
+            .url(url)
+            .get()      // "GET /"
+            .build()
+
+        try {
+            client.newCall(req).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    val text = resp.body?.string()?.trim().orEmpty()
+
+                    val status = try {
+                        org.json.JSONObject(text).optString("status")
+                    } catch (_: Exception) {
+                        text
+                    }
+                    return@withContext status.equals("server up", ignoreCase = true)
+                } else {
+                    Log.w(LOG_TAG, "serverTest: http ${resp.code} for $url")
+                    return@withContext false
+                }
+            }
+        } catch (e:Exception) {
+            Log.e(LOG_TAG,"serverTest failed for $url",e)
+            return@withContext false
+        }
+    } // end serverTest()
 
 }

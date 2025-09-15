@@ -20,4 +20,8 @@ interface BookmarkDao {
 
     @Delete
     suspend fun deleteBookmark(bookmark: BookmarkEntity)
+
+    @Query("DELETE FROM bookmark WHERE bookId = :bookId")
+    suspend fun deleteAllForBook(bookId: String)
+
 }

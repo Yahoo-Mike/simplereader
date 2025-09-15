@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SettingsDao {
@@ -11,7 +12,7 @@ interface SettingsDao {
     suspend fun insertIfMissing(entity: SettingsEntity): Long
     // returns -1 if row already exists
 
-    @Query("SELECT * FROM settings WHERE id = 1")
+    @Query("SELECT * FROM settings WHERE id = 1 LIMIT 1")
     suspend fun getSettings(): SettingsEntity?
 
     @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
@@ -25,4 +26,8 @@ interface SettingsDao {
 
     @Query("UPDATE settings SET syncPasswordIv = :iv, syncPasswordCt = :ct WHERE id = 1")
     suspend fun updateSyncPassword(iv: ByteArray?, ct: ByteArray?)
+
+    // for SyncManager
+    @Query("SELECT * FROM settings WHERE id = 1 LIMIT 1")
+    fun observeSettings(): Flow<SettingsEntity?>
 }

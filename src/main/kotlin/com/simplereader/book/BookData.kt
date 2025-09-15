@@ -13,6 +13,10 @@ import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.*
 import org.readium.r2.shared.util.mediatype.MediaType
+import java.io.File
+import java.io.FileInputStream
+import java.security.DigestInputStream
+import java.security.MessageDigest
 
 sealed class BookData(
     val publication: Publication,   // Readium-parsed book
@@ -50,6 +54,32 @@ sealed class BookData(
             publication.conformsTo(Publication.Profile.PDF) -> MEDIA_TYPE_PDF
             else -> MEDIA_TYPE_UNKNOWN
         }
+    }
+
+    private fun ByteArray.toHex(): String =
+        joinToString("") { "%02x".format(it) }
+
+    fun getSHA256(): String? {
+        val f = File(pubName)
+        if (!f.exists() || !f.isFile) return null
+
+        return try {
+            val md = MessageDigest.getInstance("SHA-256")
+            FileInputStream(f).use { fis ->
+                DigestInputStream(fis, md).use { dis ->
+                    val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+                    while (dis.read(buf) != -1) { /* just drain */ }
+                }
+            }
+            md.digest().toHex()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun getFileSize(): Long {
+        val f = File(pubName)
+        return if (f.exists() && f.isFile) f.length() else 0L
     }
 
 }

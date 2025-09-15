@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import com.simplereader.reader.ReaderActivity
+import com.simplereader.sync.SyncManager
 
 /**
  * kotlin version created by avez raj  on 13 Sep 2017
@@ -13,25 +14,33 @@ import com.simplereader.reader.ReaderActivity
 //
 // SimpleReader: singleton class
 //
-class SimpleReader {
-    private var context: Context? = null
+class SimpleReader private constructor(ctx:Context){
+    private val appContext:Context = ctx
+    //    private val appContext: Context = ctx.applicationContext
 
-    // default constructor is private to prevent external instantiation
-    private constructor()
-
-    // valid constructor is private to protect singleton status
-    private constructor(context: Context) {
-        this.context = context
+    init {
+        // start the syncmanager working in the background (it will automatically kick off a syncNow)
+        SyncManager.getInstance(appContext).start()
+//        // optional first kick:
+//        SyncManager.getInstance(appContext).enqueueSync()
     }
+
+//    // default constructor is private to prevent external instantiation
+//    private constructor()
+//
+//    // valid constructor is private to protect singleton status
+//    private constructor(context: Context) {
+//        this.context = context
+//    }
 
     fun openBook(filePath: String): SimpleReader? {
         val intentReaderActivity = getIntentFromUrl(filePath)
-        context!!.startActivity(intentReaderActivity)
+        appContext!!.startActivity(intentReaderActivity)
         return singleton
     }
 
       private fun getIntentFromUrl(filePath: String): Intent {
-        val intent = Intent(context, ReaderActivity::class.java)
+        val intent = Intent(appContext, ReaderActivity::class.java)
 
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         intent.putExtra(ReaderActivity.INTENT_FILENAME, filePath)

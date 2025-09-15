@@ -20,4 +20,8 @@ interface HighlightDao {
 
     @Delete
     suspend fun deleteHighlight(highlight: HighlightEntity)
+
+    @Query("DELETE FROM highlight WHERE bookId = :bookId")
+    suspend fun deleteAllForBook(bookId: String)
+
 }

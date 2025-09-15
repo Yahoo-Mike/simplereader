@@ -1,30 +1,11 @@
-apply(from = "versions.gradle.kts")
-
-val kotlinVersion: String by extra
-
-val activityVersion: String by extra
-val appcompatVersion: String by extra
-val composeUiVersion: String by extra
-val constraintLayoutVersion: String by extra
-val coroutinesVersion: String by extra
-val fragmentVersion: String by extra
-val lifecycleVersion: String by extra
-val materialVersion: String by extra
-val recyclerviewVersion: String by extra
-val roomVersion: String by extra
-
-val gsonVersion: String by extra
-val readiumVersion: String by extra
-val retrofitVersion: String by extra
-
 plugins {
-    id("com.android.library") version "8.12.2"
+    id("com.android.library") version "8.12.3"
     id("org.jetbrains.kotlin.android") version "2.2.10"
     id("com.google.devtools.ksp") version "2.2.10-2.0.2"
 }
 
 group = "com.simplereader"
-version = "1.1.0"
+version = "1.2.0"
 
 android {
     namespace = "com.simplereader"
@@ -32,6 +13,18 @@ android {
 
     defaultConfig {
         minSdk    =  28
+
+        buildFeatures {
+            buildConfig = true
+        }
+        defaultConfig {
+            // access in code as:  com.simplereader.BuildConfig.SIMPLEREADER_VERSION
+            buildConfigField(
+                "String",
+                "SIMPLEREADER_VERSION",
+                "\"${project.version}\""
+            )
+        }
     }
 
     sourceSets {
@@ -66,6 +59,25 @@ android {
 }
 
 dependencies {
+    val kotlinVersion = "2.2.10"
+
+    val activityVersion = "1.11.0"
+    val appcompatVersion = "1.7.1"
+    val composeUiVersion = "1.9.1"
+    val constraintLayoutVersion = "2.2.1"
+    val coroutinesVersion = "1.10.2"
+    val cryptoVersion = "1.1.0"
+    val fragmentVersion = "1.8.9"
+    val lifecycleVersion = "2.9.3"
+    val materialVersion = "1.13.0"
+    val recyclerviewVersion = "1.4.0"
+    val roomVersion = "2.8.0"
+    val workVersion= "2.10.4"
+
+    val gsonVersion = "2.13.1"
+    val readiumVersion = "3.1.1"
+    val retrofitVersion = "3.0.0"
+
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     //Kotlin
@@ -75,7 +87,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:${appcompatVersion}")
 
     // crypto (for passwords)
-    implementation("androidx.security:security-crypto:1.1.0")
+    implementation("androidx.security:security-crypto:${cryptoVersion}")
 
     //constraint, recycler and material
     implementation("androidx.constraintlayout:constraintlayout:${constraintLayoutVersion}")
@@ -105,6 +117,9 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutinesVersion}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${coroutinesVersion}")
+
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:${workVersion}")
 
     // test environment
     testImplementation("junit:junit:4.13.2")
