@@ -63,8 +63,14 @@ object TokenManager {
         return false
     }
 
-    fun isConnected(): Boolean =
-        authToken != null && tokenExpiry > System.currentTimeMillis()
+//    fun isConnected(): Boolean =
+//        authToken != null && tokenExpiry > System.currentTimeMillis()
+
+    suspend fun isConnected(ctx:Context) : Boolean {
+        // try get a token (which will force a re-login)
+        val token = getToken(ctx)
+        return token != null
+    }
 
     // disconnects current server session  (clears token)
     // note: does not server credentials - use updateServerConfig(ctx,null) to clear credentials
@@ -85,8 +91,10 @@ object TokenManager {
         val leeway = 120000   // 2 minutes leeway before token expires (in msecs)
 
         if (authToken != null) {
-            if (tokenExpiry - System.currentTimeMillis() > leeway)
-                return authToken
+            if (tokenExpiry - System.currentTimeMillis() > leeway) {
+                if (SyncManager.getInstance(ctx).getRUOK(authToken!!))
+                    return authToken
+            }
         }
 
         // serialize refresh & double-check inside
@@ -94,8 +102,10 @@ object TokenManager {
 
             // check again, because we might have been waiting for the mutex and someone else rereshed the token
             if (authToken != null) {
-                if (tokenExpiry - System.currentTimeMillis() > leeway)
-                    return@withLock authToken
+                if (tokenExpiry - System.currentTimeMillis() > leeway) {
+                    if (SyncManager.getInstance(ctx).getRUOK(authToken!!))
+                        return authToken
+                }
             }
 
             // try to refresh the token
@@ -174,7 +184,14 @@ object TokenManager {
         // post request and await response
         try {
             client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) IOException("HTTP ${resp.code}")
+                if (!resp.isSuccessful) {
+                    val msg = if (resp.code==503)
+                        "server unavailable"
+                    else
+                        resp.toString()
+                    throw IOException(msg)
+                }
+
                 val respText = resp.body?.string()?.trim().orEmpty()
                 if (respText.isEmpty()) throw IOException("empty message from server")
 
@@ -206,7 +223,7 @@ object TokenManager {
                 return LoginResult(true,token,expiry)
             }
         } catch ( e: Exception) {
-            Log.e(TAG,"login failed: $e")
+            Log.e(TAG,"login failed: ${e.message}")
             return LoginResult(false,null,0)
         }
         // unreachable

@@ -9,6 +9,8 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.io.File
+import java.security.MessageDigest
 
 private const val KEY_ALIAS = "simplereader.sync_password_key"
 
@@ -81,4 +83,16 @@ fun normaliseServerBase(base: String): String {
         .toString()
 
     return normalized.trimEnd('/') + "/"  // ensure trailing slash
+}
+
+fun sha256Hex(file: File): String {
+    val md = MessageDigest.getInstance("SHA-256")
+    file.inputStream().use { ins ->
+        val buf = ByteArray(64 * 1024)
+        while (true) {
+            val n = ins.read(buf); if (n <= 0) break
+            md.update(buf, 0, n)
+        }
+    }
+    return md.digest().joinToString("") { "%02x".format(it) }
 }

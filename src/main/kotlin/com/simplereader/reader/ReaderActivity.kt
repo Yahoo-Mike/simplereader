@@ -359,8 +359,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     }
 
     private fun onBookInitFailure() {
-        //TODO -> Fail gracefully
-        Snackbar.make(currentFocus!!, "onBookInitFailure()", Snackbar.LENGTH_LONG).show()
+        Toast.makeText(this,"onBookInitFailure()",Toast.LENGTH_LONG).show()
         finish()
     }
 

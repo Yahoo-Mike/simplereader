@@ -41,9 +41,12 @@ interface SyncDao {
         // ----------------------
         // deleted_records table
         // ----------------------
+        @Insert(onConflict = OnConflictStrategy.REPLACE)
+        suspend fun addDeletedRecord(row: DeletedRecordsEntity)
+
         @Query("SELECT * FROM deleted_records WHERE tableName = :tabname")
-        suspend fun getByTable(tabname: String): List<DeletedRecordsEntity>?
+        suspend fun getDeletedRecordByTable(tabname: String): List<DeletedRecordsEntity>
 
         @Query("DELETE FROM deleted_records WHERE bookId = :bookId AND tableName = :tabnam")
-        suspend fun deleteByBookId(tabnam: String, bookId: String)
+        suspend fun deleteDeletedRecord(tabnam: String, bookId: String)
 }

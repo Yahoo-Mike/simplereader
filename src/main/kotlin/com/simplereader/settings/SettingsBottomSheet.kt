@@ -74,19 +74,18 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
     // Normalize helper: trim & convert "" to null
     private fun norm(s: String?): String? = s?.trim().takeUnless { it.isNullOrEmpty() }
 
-    override fun onDismiss(dialog: DialogInterface) {
-        super.onDismiss(dialog)
-
+    // if settings have changed, store them in the db
+    private fun persistSettings() {
         // Guard: just in case view is gone
         val b = _binding ?: return
 
         val pendingServer = norm(b.serverTxtBox.text?.toString())
-        val pendingUser   = norm(b.userTxtBox.text?.toString())
-        val pendingPw     = norm(b.passwordTxtBox.text?.toString())
+        val pendingUser = norm(b.userTxtBox.text?.toString())
+        val pendingPw = norm(b.passwordTxtBox.text?.toString())
 
         val serverChanged = pendingServer != origServer
-        val userChanged   = pendingUser   != origUser
-        val passChanged   = pendingPw     != origPassword
+        val userChanged = pendingUser != origUser
+        val passChanged = pendingPw != origPassword
 
         if (!(serverChanged || userChanged || passChanged)) return
 
@@ -102,7 +101,17 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
                     }
                 }
             }
+
+            // update the local variables
+            origServer = pendingServer
+            origUser = pendingUser
+            origPassword = pendingPw
         }
+    }
+
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        persistSettings()
     }
 
     override fun onDestroy() {
@@ -152,6 +161,10 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
         // Sync Now: guarded by SyncManager’s mutex; enqueue WorkManager
         binding.btnSyncNow.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
+                // save settings in the dialog first
+                persistSettings()
+
+                // try to sync...
                 val started = syncManager.syncNow()
                 if (started) {
                     binding.syncStatus.text = getString(R.string.server_sync_start)

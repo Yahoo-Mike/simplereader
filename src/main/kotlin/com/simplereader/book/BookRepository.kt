@@ -1,5 +1,7 @@
 package com.simplereader.book
 
+import android.content.Context
+
 //
 // stores & retrieves book info from database
 //

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.simplereader"
-version = "1.2.0"
+version = "1.2.1"
 
 android {
     namespace = "com.simplereader"
@@ -74,7 +74,7 @@ dependencies {
     val roomVersion = "2.8.0"
     val workVersion= "2.10.4"
 
-    val gsonVersion = "2.13.1"
+    val gsonVersion = "2.13.2"
     val readiumVersion = "3.1.1"
     val retrofitVersion = "3.0.0"
 
