@@ -417,7 +417,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
     private suspend fun nop(fileId:String, t:SyncTimes) : Boolean = true
 
-    // SU: exists on server, not on client
+    // SU: Server has a book that client doesn't have
     // action:  download the file from server and update client db
     private suspend fun book0010(fileId:String,t:SyncTimes) : Boolean {
         if (t.serverUpdate == null) {
@@ -472,7 +472,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         return true
     }
 
-    // CD+SU
+    // CD+SU:  Server has update, client has deleted the book
     // action:  if (SU >= CD) download the file from server and update client db
     //          else delete from server
     private suspend fun book0110(fileId:String,t:SyncTimes) : Boolean {
@@ -493,7 +493,9 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
         if (t.clientDelete!! > t.serverUpdate!!) {
             // soft delete from the server
-            SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+            val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+            if (!rc.ok)
+                return false        // leave delete record to be dealt with later (maybe server is down?)
 
             // delete it locally
             db.bookmarkDao().deleteAllForBook(bookId)
@@ -515,7 +517,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         return true
     }
 
-    // CU
+    // CU:  Client has book that server doesn't
     // action:  upload the update info to the server
     private suspend fun book1000(fileId:String,t:SyncTimes) : Boolean {
         val db = ReaderDatabase.getInstance(appContext)
@@ -535,7 +537,12 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         }
 
         // send update to server
-        val row = bookData.toRowJson(fileId)
+        val row = JSONObject().apply {
+            put("fileId", fileId)
+            put("progress", bookData.currentProgress)
+            put("updatedAt", bookData.lastUpdated)
+        }.toString()
+
         val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.BOOK_DATA,row)
         if (rc.ok) {
             bookDao.updateBookTimestamp(bookId,rc.updatedAt) // use server's authoritative timestamp
@@ -544,7 +551,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         return rc.ok
     }
 
-    // CU+SU
+    // CU+SU:   Server and Client both have updates
     // action:  if (SU==CU) nop  (they are in sync)
     //          if (SU > CU) update client
     //          else update server
@@ -584,7 +591,8 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         return true
     }
 
-    // CU+SU+SD     (note: SU==SD, so we can ignore SU)
+    // CU+SU+SD:   Server has deleted book, client has not
+    //             (note: SU==SD, so we can ignore SU)
     // action:  if (SD >= CU) delete from client
     //          else  undelete on server
     private suspend fun book1011(fileId:String,t:SyncTimes) : Boolean {
@@ -616,7 +624,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         return true;
     }
 
-    // CU+CD
+    // CU+CD:   Client has deleted the book, the server has never seen it
     // action:  if (CD>=CU) delete from client
     //          else nop
     private suspend fun book1100(fileId:String,t:SyncTimes) : Boolean {
@@ -654,7 +662,9 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // note: when deleting a book, the server soft deletes the book and all highlights and bookmarks too
             // note: no point checking the error code, because we just added it so it should all be ok
             // note: no point updating local timestamps, because we're about to delete all the local records anyway
-            SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+            val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+            if (!rc.ok)
+                return false        // leave delete record to be dealt with later (maybe server is down?)
 
             // delete it locally
             db.bookmarkDao().deleteAllForBook(bookId)
@@ -670,7 +680,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         return true;
     }
 
-    // CU+CD+SU
+    // CU+CD+SU:   Client has deleted book, server has not
     // action:  if (CD>=CU)  // client say "delete"
     //              if (SU>=CD) update client  (ie undelete on the client)
     //              else delete from client, and delete from server
@@ -706,7 +716,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 // server loses: delete from both server and client
 
                 // delete on server
-                SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+                // BUG you need to pass JSON {table,fileId,id}
+
+                val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+                if (!rc.ok)
+                    return false        // leave delete record to be dealt with later (maybe server is down?)
 
                 // delete it locally
                 db.bookmarkDao().deleteAllForBook(bookId)
@@ -726,7 +740,8 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         return true;
     }
 
-    // CU+CD+SU+SD  (note: SU==SD, so we can ignore SU)
+    // CU+CD+SU+SD  Server and Client have both deleted the book
+    //              note: SU==SD, so we can ignore SU
     // action:  if (CD>=CU) // client says "delete"
     //              delete from client (doesn't matter whether SD is older or newer then CD)
     //          else  // client says "update", equivalent to CU+SU+SD [if (SD>=CU) delete from client else undelete on server]

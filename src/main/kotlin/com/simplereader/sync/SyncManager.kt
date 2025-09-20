@@ -506,32 +506,29 @@ class SyncManager private constructor (ctx:Context) {
 
 
     /////////////////////////////////////////////////////////////////////////////////////
-    // POST /delete {tablename,row{file_id:xxx,updatedAt:xxx,...},force=false}
+    // POST /delete {table,fileId,id}
     //   soft delete this row from table on the server db.
+    //   note: for table=book_data, server ignores "id"
     //   note: we only do one row at a time, so we can get the deletedAt for each row
     //
     //   On the server:
     //      if file_id is not found, delete is ignored.
     //      if server's timestamp is greater than rows.updatedAt, row is ignored
     //      if "tablename" is book_data, then server also softdeletes bookmarks and highlights for this fileId
+    //                                   server ignores tag "id" for book_data
+    //      if "tablename" is highlight or bookmark, then server expects tag "id" to be present
     //
     // SERVER RESPONSE: { "ok": true, "deletedAt": 1712345679000 } // with server’s authoritative timestamp
     //                  { "ok": false, "error": "conflict", "serverUpdatedAt": 1712345685000 }
     //
-    // RETURNS: ok=true if successful, in which case client should accept & use the server's updatedAt date
+    // RETURNS: ok=true if successful, in which case client should accept & use the server's deletedAt date
     //          ok=false on error
     data class PostDeleteReturn (
         val ok: Boolean,
         val deletedAt: Long = 0L
     )
-    suspend fun postDelete( tablename: String, row: String)
+    suspend fun postDelete( tablename: String, fileId: String, id: String = "" )
             : PostDeleteReturn = withContext(Dispatchers.IO) {
-
-        // sanity check: make sure row is JSON object string
-        require(row.trim().startsWith("{") && row.trim().endsWith("}")) {
-            Log.e(TAG,"postDelete failed: invalid rows [$row]")
-            return@withContext PostDeleteReturn(false)
-        }
 
         // make sure we're connected to server
         val token = TokenManager.getToken(appContext)
@@ -551,7 +548,9 @@ class SyncManager private constructor (ctx:Context) {
 
         val payload = JSONObject().apply {
             put("table", tablename)
-            put("row", JSONObject(row))
+            put("fileId", fileId)
+            if (id.isNotEmpty())
+                put("id", id)
         }.toString()
 
         val req = Request.Builder()
