@@ -53,4 +53,8 @@ data class BookDataEntity (
             return hashIdentifier(publication.metadata.identifier ?: filename)
         }
     }
+
+    fun isOnDisk() : Boolean = File(pubFile).exists()
+    fun deleteFromDisk() = File(pubFile).delete()
+
 }

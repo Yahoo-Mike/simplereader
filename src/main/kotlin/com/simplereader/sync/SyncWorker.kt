@@ -207,7 +207,6 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             val mask = tm.toMask()
             val rule = bookRules.firstOrNull {it.mask == mask}
             if (rule != null) {
-                Log.d("YM_DEBUG","[$fileId] ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverUpdate} ${tm.serverDelete} ")
                 rule.action(fileId,tm)
             } else {
                 Log.w(TAG, "syncBookData: unexpected error")
@@ -310,25 +309,43 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // iterate through all the tombstoned books
             for (t in tombstones) {
                 val bookId = t.bookId
-                val rc =
-                    mapBookId(bookId, t.sha256, t.filesize)
+                val rc = mapBookId(bookId, t.sha256, t.filesize)
                 if (!rc.ok)
                     continue    // problem on server, so leave this tombstone for another day
 
-                val fileId = rc.fileId
+                var fileId = rc.fileId
                 if (fileId.isNullOrEmpty()) {
-                    // could not resolve fileId, so just delete bookId from local database
-                    // server doesn’t have this book, so we can't update it on the server
-                    db.withTransaction {
-                        // delete all data for this bookid
-                        db.bookmarkDao().deleteAllForBook(bookId)
-                        db.highlightDao().deleteAllForBook(bookId)
-                        db.bookDao().deleteByBookId(bookId)
+                    //
+                    // we couldn't resolve the fileId, so server doesn't have this book.
+                    // If we still have it, we'll send it to the server before processing the delete.
+                    // Else, just clean up the local db
+                    //
+                    val book = db.bookDao().getBookById(bookId)
+                    if (book?.isOnDisk() == true && book.sha256 != null) {
+                        fileId = SyncManager.getInstance(appContext).postUploadBook(
+                            book.pubFile,
+                            book.sha256,
+                            book.filesize
+                        )
+                    }
 
-                        // delete all references to bookId in deleted_records
-                        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
-                        syncDao.deleteDeletedRecord(SyncTables.BOOKMARK, bookId)
-                        syncDao.deleteDeletedRecord(SyncTables.HIGHLIGHT, bookId)
+                    if (fileId == null) {
+                        // we don't have the book anymore, or the upload failed
+                        // So just delete bookId from local database
+                        db.withTransaction {
+                            // delete all data for this bookid
+                            db.bookmarkDao().deleteAllForBook(bookId)
+                            db.highlightDao().deleteAllForBook(bookId)
+                            db.bookDao().deleteByBookId(bookId)
+
+                            // delete all references to bookId in deleted_records
+                            syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
+                            syncDao.deleteDeletedRecord(SyncTables.BOOKMARK, bookId)
+                            syncDao.deleteDeletedRecord(SyncTables.HIGHLIGHT, bookId)
+                        }
+                    } else {
+                        // we now have the fileId, so allow this delete to proceed
+                        records.add(DeleteRecord(fileId, t.deletedAt))
                     }
                 } else {
                     // we have a fileId, so add it to the list...
@@ -500,7 +517,9 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // delete it locally
             db.bookmarkDao().deleteAllForBook(bookId)
             db.highlightDao().deleteAllForBook(bookId)
+            db.bookDao().getBookById(bookId)?.deleteFromDisk()      // physically delete the book
             bookDao.deleteByBookId(bookId)
+
 
             // delete all references to bookId in deleted_records
             syncDao.deleteDeletedRecord(SyncTables.BOOKMARK, bookId)
@@ -518,7 +537,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     }
 
     // CU:  Client has book that server doesn't
-    // action:  upload the update info to the server
+    // action:  upload the update file and info to the server
     private suspend fun book1000(fileId:String,t:SyncTimes) : Boolean {
         val db = ReaderDatabase.getInstance(appContext)
         val syncDao = db.syncDao()
@@ -615,7 +634,9 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // delete all the bookmarks/highlights for this book too
             db.bookmarkDao().deleteAllForBook(bookId)
             db.highlightDao().deleteAllForBook(bookId)
+            db.bookDao().getBookById(bookId)?.deleteFromDisk()      // physically delete the book
             bookDao.deleteByBookId(bookId)
+
         } else {
             // undelete on the server, which is the same as an update (book1000)
             return book1000(fileId,t)
@@ -637,7 +658,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             return false
         }
 
-        // whether we are keeping (CU) or deleting (CD) this locally, we need to put it on the server
+        // whether we are keeping (CU) or deleting (CD) locally, we need to put it on the server
         // So we first treat it like a "CU" (1000).
         // Then we decide if we delete it, in which case we delete it on the client and "soft" delete on the server
         //
@@ -669,11 +690,13 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // delete it locally
             db.bookmarkDao().deleteAllForBook(bookId)
             db.highlightDao().deleteAllForBook(bookId)
+            db.bookDao().getBookById(bookId)?.deleteFromDisk()      // physically delete the book
             bookDao.deleteByBookId(bookId)
 
             // delete all references to bookId in deleted_records
             syncDao.deleteDeletedRecord(SyncTables.BOOKMARK, bookId)
             syncDao.deleteDeletedRecord(SyncTables.HIGHLIGHT, bookId)
+
         }
 
         syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA,bookId)
@@ -706,10 +729,10 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // what does server say?
             if (t.serverUpdate!! >= t.clientDelete!!) {
                 // server wins: update the client
-                // same as book1010  (which works in this use case because 1110 has those two bits set
-                //                    and serverUpdate > clientUpdate)
-                // get data from the server
-                val ok = book1010(fileId,t)
+                // same as book0010  (which works in this use case because 1110 has this bit set)
+                // note: we use book0010 rather than book1010 because the former will also download
+                //       the book, not just update the local db
+                val ok = book0010(fileId,t)
                 if (!ok)
                     return false
             } else {
@@ -767,11 +790,16 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             db.highlightDao().deleteAllForBook(bookId)
             db.bookDao().deleteByBookId(bookId)
         } else {
-            // client says "update"
-            // equivalent to CU+SU+SD (because we just eliminated CD)
-            val ok = book1011(fileId,t)
+            // client says "update", so undelete on server
+            // equivalent to CU (because we just eliminated CD, and don't care about SU&SD at this point)
+            val ok = book1000(fileId,t)
             if (!ok)
                 return false
+
+            /// make sure we have the book, otherwise try to download it
+            val book = db.bookDao().getBookById(bookId)
+            if (book?.isOnDisk() == false)
+                SyncManager.getInstance(appContext).getBook(fileId)
         }
 
         syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA,bookId)
