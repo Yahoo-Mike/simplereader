@@ -264,8 +264,8 @@ class SyncManager private constructor (ctx:Context) {
     //
     data class PostGetReturn(val ok: Boolean,
                              val rows: List<JSONObject> = emptyList() )
-    suspend fun postGet( table: String, fileId: String
-    ): PostGetReturn = withContext(Dispatchers.IO) {
+    suspend fun postGet( table: String, fileId: String, id: Int = -1 )
+                    : PostGetReturn = withContext(Dispatchers.IO) {
         val token = TokenManager.getToken(appContext)
         if (token.isNullOrEmpty()) {
             Log.e(TAG, "postGet failed: not connected to server")
@@ -284,6 +284,8 @@ class SyncManager private constructor (ctx:Context) {
         val payload = JSONObject().apply {
             put("table", table)
             put("fileId", fileId)
+            if (id != -1)
+                put("id", id)       // we only want one record from bookmark/highlight
         }.toString()
 
         val req = Request.Builder()
@@ -332,9 +334,10 @@ class SyncManager private constructor (ctx:Context) {
     //
     //      since:  timestamp in UTC msecs   (use since=0 to get all records from tablename)
     //      limit:  maximum number of rows to send in each response
-    // RETURNS: list of ServerRecord objects (to max of limit)
-    //          "nextSince", being the next timestamp as advised by server
-    data class GetSinceResp(val ok: Boolean, val rows: List<ServerRecord> = emptyList(), val nextSince: Long=0L)
+    // RETURNS: ok=true, list of [0..n] JSON objects, being all the rows retrieved from server
+    //                   nextSince = UTC time for next batch of records (if more than "limit" to retrieve)
+    //          ok=false, an error occurred
+    data class GetSinceResp(val ok: Boolean, val rows: List<JSONObject> = emptyList(), val nextSince: Long=0L)
     suspend fun postGetSince(
         table: String,
         since: Long,
@@ -392,19 +395,10 @@ class SyncManager private constructor (ctx:Context) {
                 val rowsArr  = obj.optJSONArray("rows") ?: org.json.JSONArray()
                 val nextSince = obj.optLong("nextSince", since)
 
-                val rows = ArrayList<ServerRecord>(rowsArr.length())
+                val rows = ArrayList<JSONObject>(rowsArr.length())
                 for (i in 0 until rowsArr.length()) {
                     val r = rowsArr.getJSONObject(i)
-
-                    val deleted = r.getBoolean("deleted")
-                    val timestamp = r.getLong("updatedAt")
-
-                    rows += ServerRecord(
-                        fileId       = r.getString("fileId"),
-                        progress = r.optString("progress"),
-                        updatedAt = timestamp,
-                        deletedAt = if (deleted) timestamp else null
-                    )
+                    rows += r
                 }
                 return@withContext GetSinceResp( true, rows, nextSince)
             }
@@ -527,7 +521,7 @@ class SyncManager private constructor (ctx:Context) {
         val ok: Boolean,
         val deletedAt: Long = 0L
     )
-    suspend fun postDelete( tablename: String, fileId: String, id: String = "" )
+    suspend fun postDelete( tablename: String, fileId: String, id: Int = -1 )
             : PostDeleteReturn = withContext(Dispatchers.IO) {
 
         // make sure we're connected to server
@@ -549,7 +543,7 @@ class SyncManager private constructor (ctx:Context) {
         val payload = JSONObject().apply {
             put("table", tablename)
             put("fileId", fileId)
-            if (id.isNotEmpty())
+            if (id != -1)
                 put("id", id)
         }.toString()
 

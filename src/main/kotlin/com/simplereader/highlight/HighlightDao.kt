@@ -12,6 +12,9 @@ interface HighlightDao {
     @Query("SELECT * FROM highlight WHERE bookId = :bookId ORDER BY id ASC")
     suspend fun getHighlightsForBook(bookId: String): List<HighlightEntity>
 
+    @Query("SELECT * FROM highlight WHERE bookId = :bookId AND id = :idx")
+    suspend fun getHighlight(bookId: String, idx: Int): HighlightEntity?
+
     @Query("SELECT MAX(id) FROM highlight WHERE bookId = :bookId")
     suspend fun getMaxIdForBook(bookId: String): Int?
 
@@ -23,5 +26,8 @@ interface HighlightDao {
 
     @Query("DELETE FROM highlight WHERE bookId = :bookId")
     suspend fun deleteAllForBook(bookId: String)
+
+    @Query("UPDATE highlight SET lastUpdated = :updatedAt WHERE bookId = :bookId AND id = :id")
+    suspend fun updateTimestamp(bookId: String, id: Int, updatedAt: Long)
 
 }

@@ -6,12 +6,15 @@ import androidx.room.withTransaction
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.simplereader.book.BookDataEntity
+import com.simplereader.bookmark.BookmarkEntity
 import com.simplereader.data.ReaderDatabase
+import com.simplereader.highlight.HighlightEntity
 import com.simplereader.util.FileUtil
 import com.simplereader.util.MiscUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import kotlin.collections.plusAssign
 
 data class SyncTimes(
     var clientUpdate: Long? = null,
@@ -43,7 +46,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     override suspend fun doWork(): Result {
 
         // sanity check: are we connected to server?
-        if ( !TokenManager.isConnected(appContext) ) {
+        if (!TokenManager.isConnected(appContext)) {
             Log.w(TAG, "server sync abandoned: not connected to server")
             return Result.success()
         }
@@ -67,6 +70,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         }
         if (SyncTables.BOOKMARK in changed) {
             // sync bookmark
+            syncBookmarkData()
         }
         if (SyncTables.HIGHLIGHT in changed) {
             // sync highlight
@@ -140,10 +144,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     fun BookDataEntity.toRowJson(fileId: String): String {
         return JSONObject().apply {
             put("fileId", fileId)                    // use the given file_id, not bookId
-            put("progress", currentProgress ?: "")    // null-safe
-            put("updatedAt", lastUpdated)             // UTC millis
+            put("progress", currentProgress ?: "")   // null-safe
+            put("updatedAt", lastUpdated)            // UTC millis
         }.toString()
     }
+
     private suspend fun syncBookData() {
 
         // clear the lists we'll be building
@@ -203,11 +208,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         //
         // STEP TWO: work out what action to take for each row in timestamps
         //
-        for ( (fileId,tm) in timestamps) {
+        for ((fileId, tm) in timestamps) {
             val mask = tm.toMask()
-            val rule = bookRules.firstOrNull {it.mask == mask}
+            val rule = bookRules.firstOrNull { it.mask == mask }
             if (rule != null) {
-                rule.action(fileId,tm)
+                rule.action(fileId, tm)
             } else {
                 Log.w(TAG, "syncBookData: unexpected error")
             }
@@ -275,9 +280,16 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
             while (true) {
                 val resp = SyncManager.getInstance(appContext).postGetSince(
-                    SyncTables.BOOK_DATA, since, throttle )
+                    SyncTables.BOOK_DATA, since, throttle
+                )
                     ?: return@withContext ServerRecordsResult(false, emptyList())
-                records += resp.rows
+
+                for (row in resp.rows) {
+                    records += ServerRecord (  row.getString("fileId"),
+                                            row.optString("progress",""),
+                                           row.getLong("updatedAt"),
+                                           row.optLong("deletedAt",0L) )
+                }
 
                 if (resp.rows.size < throttle) break // we've got them all, so we can leave now...
 
@@ -359,11 +371,12 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     // maps bookId (used by client) to fileId (used by server)
     // RETURNS: ok=true on success, fileId as mapped (or null if there is no mapping)
     //          ok=false on server error
-    data class MapResult (
+    data class MapResult(
         val ok: Boolean,
         val fileId: String?
     )
-    suspend fun mapBookId(bookId: String, sha256 : String?, filesize : Long = 0L) : MapResult {
+
+    suspend fun mapBookId(bookId: String, sha256: String?, filesize: Long = 0L): MapResult {
 
         val db = ReaderDatabase.getInstance(appContext)
         val syncDao = db.syncDao()
@@ -384,11 +397,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             }
         }
 
-        return MapResult(true,fileId)
+        return MapResult(true, fileId)
     }
 
     // returns fileId for this bookId, null if no map exists
-    private suspend fun getBookId(fileId:String) : String? =
+    private suspend fun getBookId(fileId: String): String? =
         ReaderDatabase.getInstance(appContext).syncDao().getBookIdForFileId(fileId)
 
 
@@ -410,35 +423,36 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         val mask: Int,
         val action: suspend (fileId: String, t: SyncTimes) -> Boolean
     )
+
     private val bookRules = listOf(
-        BookRule("NONE",      0b0000, ::nop),       // nothing to do
-        BookRule("SD",        0b0001, ::nop),       // won't happen: if SD is non-null, then SU==SD
-        BookRule("SU",        0b0010, ::book0010),
-        BookRule("SU+SD",     0b0011, ::nop),       // deleted on server, doesn't exist on client
+        BookRule("NONE", 0b0000, ::nop),       // nothing to do
+        BookRule("SD", 0b0001, ::nop),       // won't happen: if SD is non-null, then SU==SD
+        BookRule("SU", 0b0010, ::book0010),
+        BookRule("SU+SD", 0b0011, ::nop),       // deleted on server, doesn't exist on client
 
-        BookRule("CD",        0b0100, ::nop),       // never existed on server, doesn't exist on client
-        BookRule("CD+SD",     0b0101, ::nop),       // won't happen: if SD is non-null, then SU==SD
-        BookRule("CD+SU",     0b0110, ::book0110),
-        BookRule("CD+SU+SD",  0b0111, ::nop),       // already deleted on server and client
+        BookRule("CD", 0b0100, ::nop),       // never existed on server, doesn't exist on client
+        BookRule("CD+SD", 0b0101, ::nop),       // won't happen: if SD is non-null, then SU==SD
+        BookRule("CD+SU", 0b0110, ::book0110),
+        BookRule("CD+SU+SD", 0b0111, ::nop),       // already deleted on server and client
 
-        BookRule("CU",        0b1000, ::book1000),
-        BookRule("CU+SD",     0b1001, ::nop),       // won't happen: if SD is non-null, then SU==SD
-        BookRule("CU+SU",     0b1010, ::book1010),
-        BookRule("CU+SU+SD",  0b1011, ::book1011),
+        BookRule("CU", 0b1000, ::book1000),
+        BookRule("CU+SD", 0b1001, ::nop),       // won't happen: if SD is non-null, then SU==SD
+        BookRule("CU+SU", 0b1010, ::book1010),
+        BookRule("CU+SU+SD", 0b1011, ::book1011),
 
-        BookRule("CU+CD",     0b1100, ::book1100),
-        BookRule("CU+CD+SD",  0b1101, ::nop),       // won't happen: if SD is non-null, then SU==SD
-        BookRule("CU+CD+SU",  0b1110, ::book1110),
-        BookRule("ALL",       0b1111, ::book1111),
+        BookRule("CU+CD", 0b1100, ::book1100),
+        BookRule("CU+CD+SD", 0b1101, ::nop),       // won't happen: if SD is non-null, then SU==SD
+        BookRule("CU+CD+SU", 0b1110, ::book1110),
+        BookRule("ALL", 0b1111, ::book1111),
     )
 
-    private suspend fun nop(fileId:String, t:SyncTimes) : Boolean = true
+    private suspend fun nop(fileId: String, t: SyncTimes): Boolean = true
 
     // SU: Server has a book that client doesn't have
     // action:  download the file from server and update client db
-    private suspend fun book0010(fileId:String,t:SyncTimes) : Boolean {
+    private suspend fun book0010(fileId: String, t: SyncTimes): Boolean {
         if (t.serverUpdate == null) {
-            Log.e(TAG,"book0010: unexpected null timestamps")
+            Log.e(TAG, "book0010: unexpected null timestamps")
             return false
         }
 
@@ -446,25 +460,28 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         val rc1 = SyncManager.getInstance(appContext).getBook(fileId)
         if (!rc1.ok)
             return false
-        if (rc1.filename==null)
+        if (rc1.filename == null)
             return false    // we need to know the filename
 
         // get record info from the server
-        val rc2 = SyncManager.getInstance(appContext).postGet(SyncTables.BOOK_DATA,fileId)
+        val rc2 = SyncManager.getInstance(appContext).postGet(SyncTables.BOOK_DATA, fileId)
         if (!rc2.ok)
             return false    // something went wrong
 
         val rowList = rc2.rows
         if (rowList.isNotEmpty()) {
             if (rowList.size > 1)
-                Log.w(TAG, "book0010: only processing first of [${rc2.rows.size}] rows. Was only expecting one row.")
+                Log.w(
+                    TAG,
+                    "book0010: only processing first of [${rc2.rows.size}] rows. Was only expecting one row."
+                )
 
             val row = rowList[0] // process the first row only
             val progress = row.getString("progress")
             val updatedAt = row.getLong("updatedAt")
 //            val deletedAt = row.optLong("deletedAt",0L)  // assume the caller checked if its deleted or not (and how it wants to proceed)
 
-            val bookId = BookDataEntity.constructBookId(appContext,rc1.filename)
+            val bookId = BookDataEntity.constructBookId(appContext, rc1.filename)
             if (bookId == null)
                 return false    // we need to know bookId
             val bookExt = FileUtil.getExtensionUppercase(rc1.filename)
@@ -484,7 +501,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             db.bookDao().insert(book)
 
             // map this fileId/bookId pair
-            db.syncDao().updateMapping(SyncFileIdMapEntity(fileId,bookId))
+            db.syncDao().updateMapping(SyncFileIdMapEntity(fileId, bookId))
         }
         return true
     }
@@ -492,25 +509,25 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     // CD+SU:  Server has update, client has deleted the book
     // action:  if (SU >= CD) download the file from server and update client db
     //          else delete from server
-    private suspend fun book0110(fileId:String,t:SyncTimes) : Boolean {
+    private suspend fun book0110(fileId: String, t: SyncTimes): Boolean {
         val db = ReaderDatabase.getInstance(appContext)
         val syncDao = db.syncDao()
         val bookDao = db.bookDao()
 
         if (t.clientDelete == null || t.serverUpdate == null) {
-            Log.e(TAG,"book0110: unexpected null timestamps")
+            Log.e(TAG, "book0110: unexpected null timestamps")
             return false
         }
 
         val bookId = syncDao.getBookIdForFileId(fileId)
         if (bookId.isNullOrEmpty()) {
-            Log.e(TAG,"book0110: invalid fileId")
+            Log.e(TAG, "book0110: invalid fileId")
             return false
         }
 
         if (t.clientDelete!! > t.serverUpdate!!) {
             // soft delete from the server
-            val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+            val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA, fileId)
             if (!rc.ok)
                 return false        // leave delete record to be dealt with later (maybe server is down?)
 
@@ -532,26 +549,26 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 return false
         }
 
-        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA,bookId)
+        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
         return true
     }
 
     // CU:  Client has book that server doesn't
     // action:  upload the update file and info to the server
-    private suspend fun book1000(fileId:String,t:SyncTimes) : Boolean {
+    private suspend fun book1000(fileId: String, t: SyncTimes): Boolean {
         val db = ReaderDatabase.getInstance(appContext)
         val syncDao = db.syncDao()
         val bookDao = db.bookDao()
 
         val bookId = syncDao.getBookIdForFileId(fileId)
         if (bookId.isNullOrEmpty()) {
-            Log.e(TAG,"book1000: invalid fileId")
+            Log.e(TAG, "book1000: invalid fileId")
             return false
         }
 
         val bookData = bookDao.getBookById(bookId)
         if (bookData == null) {
-            Log.e(TAG,"book1000: no book data")
+            Log.e(TAG, "book1000: no book data")
             return false
         }
 
@@ -562,9 +579,12 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             put("updatedAt", bookData.lastUpdated)
         }.toString()
 
-        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.BOOK_DATA,row)
+        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.BOOK_DATA, row)
         if (rc.ok) {
-            bookDao.updateBookTimestamp(bookId,rc.updatedAt) // use server's authoritative timestamp
+            bookDao.updateTimestamp(
+                bookId,
+                rc.updatedAt
+            ) // use server's authoritative timestamp
         }
 
         return rc.ok
@@ -574,22 +594,22 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     // action:  if (SU==CU) nop  (they are in sync)
     //          if (SU > CU) update client
     //          else update server
-    private suspend fun book1010(fileId:String,t:SyncTimes) : Boolean {
+    private suspend fun book1010(fileId: String, t: SyncTimes): Boolean {
         val db = ReaderDatabase.getInstance(appContext)
         val syncDao = db.syncDao()
         val bookDao = db.bookDao()
 
         if (t.serverUpdate == null || t.clientUpdate == null) {
-            Log.e(TAG,"book1010: unexpected null timestamps")
+            Log.e(TAG, "book1010: unexpected null timestamps")
             return false
         }
 
-        if (t.serverUpdate==t.clientUpdate)
+        if (t.serverUpdate == t.clientUpdate)
             return true // nothing to do because they are in sync
 
         val bookId = syncDao.getBookIdForFileId(fileId)
         if (bookId.isNullOrEmpty()) {
-            Log.e(TAG,"book1010: invalid fileId")
+            Log.e(TAG, "book1010: invalid fileId")
             return false
         }
 
@@ -597,14 +617,14 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
             val serverRow = serverRecords.find { it.fileId == fileId }
             if (serverRow == null) {
-                Log.e(TAG,"book1010: failed to find server record")
+                Log.e(TAG, "book1010: failed to find server record")
                 return false
             }
 
-            bookDao.updateProgress(bookId,serverRow.progress)
-            bookDao.updateBookTimestamp(bookId,serverRow.updatedAt)
+            bookDao.updateProgress(bookId, serverRow.progress)
+            bookDao.updateTimestamp(bookId, serverRow.updatedAt)
         } else {
-            return book1000(fileId,t)  // same as a CU
+            return book1000(fileId, t)  // same as a CU
         }
 
         return true
@@ -614,9 +634,9 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     //             (note: SU==SD, so we can ignore SU)
     // action:  if (SD >= CU) delete from client
     //          else  undelete on server
-    private suspend fun book1011(fileId:String,t:SyncTimes) : Boolean {
+    private suspend fun book1011(fileId: String, t: SyncTimes): Boolean {
         if (t.clientUpdate == null || t.serverUpdate == null || t.serverDelete == null) {
-            Log.e(TAG,"book1011: unexpected null timestamps")
+            Log.e(TAG, "book1011: unexpected null timestamps")
             return false
         }
 
@@ -627,7 +647,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
             val bookId = db.syncDao().getBookIdForFileId(fileId)
             if (bookId.isNullOrEmpty()) {
-                Log.e(TAG,"book1011: invalid fileId")
+                Log.e(TAG, "book1011: invalid fileId")
                 return false
             }
 
@@ -639,7 +659,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
         } else {
             // undelete on the server, which is the same as an update (book1000)
-            return book1000(fileId,t)
+            return book1000(fileId, t)
         }
 
         return true;
@@ -648,13 +668,13 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     // CU+CD:   Client has deleted the book, the server has never seen it
     // action:  if (CD>=CU) delete from client
     //          else nop
-    private suspend fun book1100(fileId:String,t:SyncTimes) : Boolean {
+    private suspend fun book1100(fileId: String, t: SyncTimes): Boolean {
         val db = ReaderDatabase.getInstance(appContext)
         val syncDao = db.syncDao()
         val bookDao = db.bookDao()
 
         if (t.clientUpdate == null || t.clientDelete == null) {
-            Log.e(TAG,"book1100: unexpected null timestamps")
+            Log.e(TAG, "book1100: unexpected null timestamps")
             return false
         }
 
@@ -666,13 +686,13 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         // server "soft" deletes. So if the user ever reloads this book, then the progress, bookmarks
         // and highlights will magically reappear from the server.
         //
-        val ok = book1000(fileId,t); // send it to the server
+        val ok = book1000(fileId, t); // send it to the server
         if (!ok)
             return false;    // do not continue
 
         val bookId = syncDao.getBookIdForFileId(fileId)
         if (bookId.isNullOrEmpty()) {
-            Log.e(TAG,"book1100: invalid fileId")
+            Log.e(TAG, "book1100: invalid fileId")
             return false
         }
 
@@ -683,7 +703,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // note: when deleting a book, the server soft deletes the book and all highlights and bookmarks too
             // note: no point checking the error code, because we just added it so it should all be ok
             // note: no point updating local timestamps, because we're about to delete all the local records anyway
-            val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+            val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA, fileId)
             if (!rc.ok)
                 return false        // leave delete record to be dealt with later (maybe server is down?)
 
@@ -699,7 +719,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
         }
 
-        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA,bookId)
+        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
         return true;
     }
 
@@ -709,10 +729,10 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     //              else delete from client, and delete from server
     //          else  // client says "update", equivalent to CU+SU [if (SU>=CU) update client else update server]
     //              book1010(fileId,t)
-    private suspend fun book1110(fileId:String,t:SyncTimes) : Boolean {
+    private suspend fun book1110(fileId: String, t: SyncTimes): Boolean {
 
         if (t.clientUpdate == null || t.clientDelete == null || t.serverUpdate == null) {
-            Log.e(TAG,"book1110: unexpected null timestamps")
+            Log.e(TAG, "book1110: unexpected null timestamps")
             return false
         }
 
@@ -720,7 +740,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         val syncDao = db.syncDao()
         val bookId = syncDao.getBookIdForFileId(fileId)
         if (bookId.isNullOrEmpty()) {
-            Log.e(TAG,"book1110: invalid fileId")
+            Log.e(TAG, "book1110: invalid fileId")
             return false
         }
 
@@ -732,7 +752,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 // same as book0010  (which works in this use case because 1110 has this bit set)
                 // note: we use book0010 rather than book1010 because the former will also download
                 //       the book, not just update the local db
-                val ok = book0010(fileId,t)
+                val ok = book0010(fileId, t)
                 if (!ok)
                     return false
             } else {
@@ -741,7 +761,8 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 // delete on server
                 // BUG you need to pass JSON {table,fileId,id}
 
-                val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA,fileId)
+                val rc =
+                    SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA, fileId)
                 if (!rc.ok)
                     return false        // leave delete record to be dealt with later (maybe server is down?)
 
@@ -754,12 +775,12 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         } else {
             // client says "update"
             // equivalent to CU+SU  (book1010 will sort out whether CU or SU wins)
-            val ok = book1010(fileId,t)
+            val ok = book1010(fileId, t)
             if (!ok)
                 return false
         }
 
-        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA,bookId)
+        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
         return true;
     }
 
@@ -769,17 +790,17 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     //              delete from client (doesn't matter whether SD is older or newer then CD)
     //          else  // client says "update", equivalent to CU+SU+SD [if (SD>=CU) delete from client else undelete on server]
     //              book1011(fileId,t)
-    private suspend fun book1111(fileId:String,t:SyncTimes) : Boolean {
+    private suspend fun book1111(fileId: String, t: SyncTimes): Boolean {
         val db = ReaderDatabase.getInstance(appContext)
         val syncDao = db.syncDao()
         if (t.clientUpdate == null || t.clientDelete == null || t.serverUpdate == null || t.serverDelete == null) {
-            Log.e(TAG,"book1111: unexpected null timestamps")
+            Log.e(TAG, "book1111: unexpected null timestamps")
             return false
         }
 
         val bookId = syncDao.getBookIdForFileId(fileId)
         if (bookId.isNullOrEmpty()) {
-            Log.e(TAG,"book1111: invalid fileId")
+            Log.e(TAG, "book1111: invalid fileId")
             return false
         }
         if (t.clientDelete!! >= t.clientUpdate!!) {
@@ -792,7 +813,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         } else {
             // client says "update", so undelete on server
             // equivalent to CU (because we just eliminated CD, and don't care about SU&SD at this point)
-            val ok = book1000(fileId,t)
+            val ok = book1000(fileId, t)
             if (!ok)
                 return false
 
@@ -802,8 +823,646 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 SyncManager.getInstance(appContext).getBook(fileId)
         }
 
-        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA,bookId)
+        syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
         return true;
+    }
+
+    //********************************************************************************
+    // BOOKMARKS & HIGHLIGHTS - much simpler than books
+    // bookmarks & highlights share the same update/delete pattern.
+    // There are only four rules: update/delete server/client
+    //********************************************************************************
+
+    data class Marker(
+        val table: String, // bookmark/highlight
+        val updateServerRow: suspend (fileId: String, idx: Int) -> Boolean,   // update server from client
+        val updateClientRow: suspend (fileId: String, idx: Int) -> Boolean,   // update client from server
+        val deleteServerRow: suspend (fileId: String, idx: Int) -> Boolean,   // delete server's row (soft delete)
+        val deleteClientRow: suspend (fileId: String, idx: Int) -> Boolean    // delete row on client (locally)
+    )
+
+    private val bookmarkMarkers = Marker(
+        "bookmark",
+        ::updateServerBookmark,
+        ::updateClientBookmark,
+        ::deleteServerBookmark,
+        ::deleteClientBookmark
+    )
+    private val highlightMarkers = Marker(
+        "highlight",
+        ::updateServerHighlight,
+        ::updateClientHighlight,
+        ::deleteServerHighlight,
+        ::deleteClientHighlight
+    )
+
+    enum class MarkerType { BOOKMARK, HIGHLIGHT }
+    private fun markerTable(type : MarkerType) : String {
+        return if (type== MarkerType.BOOKMARK) SyncTables.BOOKMARK
+            else SyncTables.HIGHLIGHT
+    }
+    data class MarkerRule(
+        val name: String,
+        val mask: Int,
+        val action: suspend (marker: MarkerType, fileId: String, id: Int, t: SyncTimes?) -> Boolean
+    )
+
+    val markerRules = listOf(
+        MarkerRule("NONE", 0b0000, ::nop1),         // nothing to do
+        MarkerRule("SD", 0b0001, ::nop1),           // won't happen: if SD is non-null, then SU==SD
+        MarkerRule("SU", 0b0010, ::marker0010),
+        MarkerRule("SU+SD", 0b0011, ::nop1),        // deleted on server, doesn't exist on client
+
+        MarkerRule("CD", 0b0100, ::deleteDeletedMarker),           // never existed on server, doesn't exist on client
+        MarkerRule("CD+SD", 0b0101, ::deleteDeletedMarker ),       // won't happen: if SD is non-null, then SU==SD
+        MarkerRule("CD+SU", 0b0110, ::marker0110),
+        MarkerRule("CD+SU+SD", 0b0111, ::deleteDeletedMarker),     // already deleted on server and client
+
+        MarkerRule("CU", 0b1000, ::marker1000),
+        MarkerRule("CU+SD", 0b1001, ::nop1),        // won't happen: if SD is non-null, then SU==SD
+        MarkerRule("CU+SU", 0b1010, ::marker1010),
+        MarkerRule("CU+SU+SD", 0b1011, ::marker1011),
+
+        MarkerRule("CU+CD", 0b1100, ::marker1100),
+        MarkerRule("CU+CD+SD",0b1101, ::deleteDeletedMarker),      // won't happen: if SD is non-null, then SU==SD
+        MarkerRule("CU+CD+SU", 0b1110, ::marker1110),
+        MarkerRule("ALL", 0b1111, ::marker1111)
+    )
+
+
+    private var serverBookmarks: List<ServerMarker>  = emptyList()
+    private var deleteBookmarks: List<DeleteMarker>  = emptyList()
+    private var clientBookmarks: List<ClientMarker>  = emptyList()
+    private var serverHighlights: List<ServerMarker> = emptyList()
+    private var deleteHighlights: List<DeleteMarker> = emptyList()
+    private var clientHighlights: List<ClientMarker> = emptyList()
+
+    private suspend fun syncBookmarkData() {
+
+        // clear the lists we'll be building
+        serverBookmarks = emptyList()
+        deleteBookmarks = emptyList()
+        clientBookmarks = emptyList()
+
+        // our map of timestamps, which we'll later compare
+        val timestamps: MutableMap<MarkerKey, SyncTimes> = mutableMapOf()
+
+        //
+        // STEP ONE: build list of all timestamps
+        //
+        // get timestamps for all books known to server
+        val result1 = getAllServerMarkers(MarkerType.BOOKMARK)
+        var ok = result1.ok;
+        serverBookmarks = result1.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get server bookmarks")
+            return
+        }
+        for (record in serverBookmarks) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                serverUpdate = record.updatedAt
+                serverDelete = record.deletedAt
+            }
+        }
+
+        // get timestamps for all bookmarks deleted locally
+        val result2 = getLocalDeleteMarkers(MarkerType.BOOKMARK)
+        ok = result2.ok;
+        deleteBookmarks = result2.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get local deleted bookmarks")
+            return
+        }
+        for (record in deleteBookmarks) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                clientDelete = record.deletedAt
+            }
+        }
+
+        // get timestamps for all local bookmarks
+        val result3 = getClientMarkers(MarkerType.BOOKMARK)
+        ok = result3.ok;
+        clientBookmarks = result3.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get local bookmarks")
+            return
+        }
+        for (record in clientBookmarks) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                clientUpdate = record.updatedAt
+            }
+        }
+
+        //
+        // STEP TWO: work out what action to take for each row in timestamps
+        //
+        for ((key, tm) in timestamps) {
+            val mask = tm.toMask()
+            val rule = markerRules.firstOrNull { it.mask == mask }
+            if (rule != null) {
+                rule.action(MarkerType.BOOKMARK, key.fileId, key.id.toInt(), tm)
+            } else {
+                Log.w(TAG, "syncBookmarkData: unexpected error")
+            }
+        }
+
+    }
+
+    private suspend fun syncHighlightData() {
+
+        // clear the lists we'll be building
+        serverHighlights = emptyList()
+        deleteHighlights = emptyList()
+        clientHighlights = emptyList()
+
+        // our map of timestamps, which we'll later compare
+        val timestamps: MutableMap<MarkerKey, SyncTimes> = mutableMapOf()
+
+        //
+        // STEP ONE: build list of all timestamps
+        //
+        // get timestamps for all highlights known to server
+        val result1 = getAllServerMarkers(MarkerType.HIGHLIGHT)
+        var ok = result1.ok;
+        serverHighlights = result1.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get server highlights")
+            return
+        }
+        for (record in serverHighlights) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                serverUpdate = record.updatedAt
+                serverDelete = record.deletedAt
+            }
+        }
+
+        // get timestamps for all highlights deleted locally
+        val result2 = getLocalDeleteMarkers(MarkerType.HIGHLIGHT)
+        ok = result2.ok;
+        deleteHighlights = result2.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get local deleted highlights")
+            return
+        }
+        for (record in deleteHighlights) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                clientDelete = record.deletedAt
+            }
+        }
+
+        // get timestamps for all local highlights
+        val result3 = getClientMarkers(MarkerType.HIGHLIGHT)
+        ok = result3.ok;
+        clientHighlights = result3.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get local highlights")
+            return
+        }
+        for (record in clientHighlights) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                clientUpdate = record.updatedAt
+            }
+        }
+
+        //
+        // STEP TWO: work out what action to take for each row in timestamps
+        //
+        for ((key, tm) in timestamps) {
+            val mask = tm.toMask()
+            val rule = markerRules.firstOrNull { it.mask == mask }
+            if (rule != null) {
+                rule.action(MarkerType.HIGHLIGHT, key.fileId, key.id.toInt(), tm)
+            } else {
+                Log.w(TAG, "syncHighlightData: unexpected error")
+            }
+        }
+
+    }
+
+    // deletes this marker from the "deleted_records" table
+    private suspend fun deleteDeletedMarker(marker: MarkerType,fileId: String, id: Int, t: SyncTimes? = null) : Boolean {
+        val syncDao = ReaderDatabase.getInstance(appContext).syncDao()
+        val bookId = syncDao.getBookIdForFileId(fileId)
+        if (bookId==null) {
+            Log.w(TAG, "unknown fileId")
+            return false
+        }
+        syncDao.deleteDeletedRecord(markerTable(marker), bookId)
+        return true
+    }
+
+    private suspend fun nop1(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean = true
+
+    // SU : new marker on the server, copy it to the client
+    private suspend fun marker0010(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        // update
+        return if (marker == MarkerType.BOOKMARK)
+            bookmarkMarkers.updateClientRow(fileId,id)
+        else
+            highlightMarkers.updateClientRow(fileId,id)
+    }
+
+    // CD+SU:
+    private suspend fun marker0110(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        if (t == null) return false
+        if (t.serverUpdate == null || t.clientDelete == null)
+                return false
+
+        val ok = if (t.serverUpdate!! >= t.clientDelete!!) { // SU wins
+                    if (marker == MarkerType.BOOKMARK)
+                        bookmarkMarkers.updateClientRow(fileId,id)
+                    else
+                        highlightMarkers.updateClientRow(fileId,id)
+                } else { // CD wins
+                    if (marker == MarkerType.BOOKMARK)
+                        bookmarkMarkers.deleteServerRow(fileId,id)
+                    else
+                        highlightMarkers.deleteServerRow(fileId,id)
+                }
+
+        if (ok)
+            deleteDeletedMarker(marker,fileId,id)
+
+        return ok
+    }
+
+    // CU: new marker on the client, copy it to the server
+    private suspend fun marker1000(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        return if (marker == MarkerType.BOOKMARK)
+            bookmarkMarkers.updateServerRow(fileId,id)
+        else
+            highlightMarkers.updateServerRow(fileId,id)
+    }
+
+    // CU+SU
+    private suspend fun marker1010(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        if (t == null) return false
+
+        if (t.serverUpdate == null || t.clientUpdate == null)
+            return false
+
+        if (t.serverUpdate == t.clientUpdate)
+            return true// nop, client and server in sync
+
+        if (t.serverUpdate!! > t.clientUpdate!!) { // SU wins
+            if (marker == MarkerType.BOOKMARK)
+                bookmarkMarkers.updateClientRow(fileId,id)
+            else
+                highlightMarkers.updateClientRow(fileId,id)
+        } else { // CU wins
+            if (marker == MarkerType.BOOKMARK)
+                bookmarkMarkers.updateServerRow(fileId,id)
+            else
+                highlightMarkers.updateServerRow(fileId,id)
+        }
+
+        return true
+    }
+
+    // CU+SU+SD:  we assume SD==SD, so this is same as CU+SD (1001)
+    private suspend fun marker1011(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        if (t == null) return false
+        if (t.clientUpdate == null || t.serverUpdate==null || t.serverDelete == null)
+            return false
+
+        if (t.serverDelete!! > t.clientUpdate!!) { // SD wins
+            if (marker == MarkerType.BOOKMARK)
+                bookmarkMarkers.deleteClientRow(fileId,id)
+            else
+                highlightMarkers.deleteClientRow(fileId,id)
+        } else { // CU wins
+            if (marker == MarkerType.BOOKMARK)
+                bookmarkMarkers.updateServerRow(fileId,id)
+            else
+                highlightMarkers.updateServerRow(fileId,id)
+        }
+
+        return true
+    }
+
+    // CU+CD: server has not seen this book
+    private suspend fun marker1100(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        if (t == null) return false
+        if (t.clientUpdate == null || t.clientDelete == null)
+            return false
+
+        var ok = true
+        if (t.clientDelete!! >= t.clientUpdate!!) { // CD wins
+            ok = if (marker == MarkerType.BOOKMARK)
+                    bookmarkMarkers.deleteClientRow(fileId,id)
+                else
+                    highlightMarkers.deleteClientRow(fileId,id)
+        } // else CU wins = nop
+
+        if (ok)
+            deleteDeletedMarker(marker,fileId,id)
+        return ok
+    }
+
+    // CU+CD+SU
+    private suspend fun marker1110(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        if (t == null) return false
+        if (t.clientUpdate == null || t.clientDelete == null || t.serverUpdate==null )
+            return false
+
+        var ok = true
+        if (t.clientDelete!! >= t.clientUpdate!!) { // client says "delete"
+            if (t.serverUpdate!! >= t.clientDelete!!) {  // SU wins
+                ok = if (marker == MarkerType.BOOKMARK)
+                        bookmarkMarkers.updateClientRow(fileId,id)
+                    else
+                        highlightMarkers.updateClientRow(fileId,id)
+            } else { // CD wins
+                ok = if (marker == MarkerType.BOOKMARK) {
+                        bookmarkMarkers.deleteClientRow(fileId, id)
+                        bookmarkMarkers.deleteServerRow(fileId, id)
+                    }
+                    else {
+                        highlightMarkers.deleteClientRow(fileId, id)
+                        highlightMarkers.deleteServerRow(fileId, id)
+                    }
+            }
+        } else { // client says "update" - same as CU+SU
+            ok = marker1010( marker, fileId, id, t )
+        }
+
+        if (ok)
+            deleteDeletedMarker(marker,fileId,id)
+        return ok
+    }
+
+    // CU+CD+SU+SD:  we assume SU==SD, so this is like 1101
+    private suspend fun marker1111(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        if (t == null) return false
+        if (t.clientUpdate == null || t.clientDelete == null || t.serverUpdate==null || t.serverDelete==null)
+            return false
+
+        var ok = true
+        if ((t.clientUpdate!! > t.clientDelete!!) && (t.clientUpdate!! > t.serverDelete!!)) { // CU wins
+            ok = if (marker == MarkerType.BOOKMARK)
+                bookmarkMarkers.updateServerRow(fileId, id)
+            else
+                highlightMarkers.updateServerRow(fileId, id)
+        } else { // CD and/or SD wins, so delete from client
+            ok = if (marker == MarkerType.BOOKMARK)
+                bookmarkMarkers.deleteClientRow(fileId, id)
+            else
+                highlightMarkers.deleteClientRow(fileId, id)
+        }
+
+        if (ok)
+            deleteDeletedMarker(marker,fileId,id)
+        return ok
+    }
+
+    private fun BookmarkEntity.toRowJson(fileId: String): String {
+        // need to post update("bookmark",{fileId,id,locator,label,updatedAt})
+        return JSONObject().apply {
+            put("fileId", fileId)                    // use the given file_id, not bookId
+            put("id", id)
+            put("locator", locator)
+            put("label", label)
+            put("updatedAt", lastUpdated)
+        }.toString()
+    }
+
+    private fun HighlightEntity.toRowJson(fileId: String): String {
+        // need to post update("highlight",{fileId,id,selection,label,colour,updatedAt})
+        return JSONObject().apply {
+            put("fileId", fileId)                    // use the given file_id, not bookId
+            put("id", id)
+            put("selection", selection)
+            put("label", label)
+            put("colour", colour)
+            put("updatedAt", lastUpdated)            // UTC millis
+        }.toString()
+    }
+
+    private suspend fun updateServerBookmark(fileId: String, idx: Int) : Boolean {   // update server from client
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+        val bookmark = db.bookmarkDao().getBookmark(bookId,idx)
+        if (bookmark == null)
+            return false    // can't get data to send to server
+
+        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.BOOKMARK, bookmark.toRowJson(fileId))
+        if (rc.ok)
+            db.bookmarkDao().updateTimestamp(bookId,bookmark.id,rc.updatedAt)   // adopt server's authoritative timestamp
+        return rc.ok
+    }
+
+    private suspend fun updateClientBookmark(fileId: String, idx: Int) : Boolean {   // update client from server
+
+        val rc = SyncManager.getInstance(appContext).postGet(SyncTables.BOOKMARK, fileId,idx)
+        if (!rc.ok)
+            return false    // couldn't get data back from server
+
+        if (rc.rows.isEmpty())
+            return false    // row not found on server
+
+        if (rc.rows.size > 1)
+            Log.w(TAG, "more than one bookmark found for [$fileId/$idx].  Using first one only.")
+
+        val row = rc.rows[0]
+
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+
+        val newBookmark = BookmarkEntity(bookId,idx,
+                                row.getString("label"),
+                                row.getString("locator"),
+                                row.getLong("lastUpdated") )
+        db.bookmarkDao().insertBookmark(newBookmark)
+
+        return true
+    }
+
+    private suspend fun deleteServerBookmark(fileId: String, idx: Int) : Boolean {   // delete server's row (soft delete)
+        val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOKMARK, fileId,idx)
+        return rc.ok
+    }
+
+    private suspend fun deleteClientBookmark(fileId: String, idx: Int) : Boolean {   // delete row on client (locally)
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+        val row = db.bookmarkDao().getBookmark(fileId,idx)
+        if (row != null)
+            db.bookmarkDao().deleteBookmark(row)
+        return true
+    }
+
+    // need to post update("highlight",{fileId,id,selection,label,colour,updatedAt})
+    private suspend fun updateServerHighlight(fileId: String, idx: Int) : Boolean {   // update server from client
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+        val highlight = db.highlightDao().getHighlight(bookId,idx)
+        if (highlight == null)
+            return false    // can't get data to send to server
+
+        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.HIGHLIGHT, highlight.toRowJson(fileId))
+        if (rc.ok)
+            db.highlightDao().updateTimestamp(bookId,highlight.id,rc.updatedAt)   // adopt server's authoritative timestamp
+        return rc.ok
+    }
+
+    private suspend fun updateClientHighlight(fileId: String, idx: Int) : Boolean {   // update client from server
+        val rc = SyncManager.getInstance(appContext).postGet(SyncTables.HIGHLIGHT, fileId,idx)
+        if (!rc.ok)
+            return false    // couldn't get data back from server
+
+        if (rc.rows.isEmpty())
+            return false    // row not found on server
+
+        if (rc.rows.size > 1)
+            Log.w(TAG, "more than one highlight found for [$fileId/$idx].  Using first one only.")
+
+        val row = rc.rows[0]
+
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+
+        val newHighlight = HighlightEntity(bookId,idx,
+            row.getString("selection"),
+            row.getString("label"),
+            row.getString("colour"),
+            row.getLong("lastUpdated") )
+        db.highlightDao().insertHighlight(newHighlight)
+
+        return true
+    }
+
+    private suspend fun deleteServerHighlight(fileId: String, idx: Int) : Boolean {   // delete server's row (soft delete)
+        val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.HIGHLIGHT, fileId,idx)
+        return rc.ok
+    }
+
+    private suspend fun deleteClientHighlight(fileId: String, idx: Int) : Boolean {   // delete row on client (locally)
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+        val row = db.highlightDao().getHighlight(fileId,idx)
+        if (row != null)
+            db.highlightDao().deleteHighlight(row)
+        return true
+    }
+
+
+    private data class ServerMarkerResult(
+        val ok: Boolean,
+        val records: List<ServerMarker>
+    )
+    private suspend fun getAllServerMarkers(marker: MarkerType): ServerMarkerResult =
+        withContext(Dispatchers.IO) {
+
+            val records = mutableListOf<ServerMarker>()
+            var since = 0L  // all records
+            val throttle = 100 // 100 records at a time
+
+            while (true) {
+                val resp = SyncManager.getInstance(appContext).postGetSince(
+                    markerTable(marker), since, throttle
+                )
+                    ?: return@withContext ServerMarkerResult(false, emptyList())
+
+                for (row in resp.rows) {
+                    records += ServerMarker (  MarkerKey(row.getString("fileId"),row.getLong("id")),
+                                    row.getLong("updatedAt"),
+                                    row.optLong("deletedAt",0L) )
+                }
+
+                if (resp.rows.size < throttle) break // we've got them all, so we can leave now...
+
+                since = resp.nextSince  // we need to read more
+            }
+
+            return@withContext ServerMarkerResult(true, records)
+        }
+
+
+    private data class DeleteMarkerResult(
+        val ok: Boolean,
+        val records: List<DeleteMarker> = emptyList()
+    )
+    private suspend fun getLocalDeleteMarkers(marker: MarkerType): DeleteMarkerResult =
+        withContext(Dispatchers.IO) {
+            val db = ReaderDatabase.getInstance(appContext)
+            val syncDao = db.syncDao()
+
+            // 1oad tombstones for bookmark/highlight, if there are none, we can gracefully leave
+            val tombstones = syncDao.getDeletedRecordByTable(markerTable(marker))
+            if (tombstones.isNullOrEmpty())
+                return@withContext DeleteMarkerResult(true) // return with empty list
+
+            val records = mutableListOf<DeleteMarker>()
+
+            // iterate through all the tombstoned books
+            for (t in tombstones) {
+                val bookId = t.bookId
+                val rc = mapBookId(bookId, t.sha256, t.filesize)
+                if (!rc.ok)
+                    continue    // problem on server, so leave this tombstone for another day
+
+                val fileId = rc.fileId
+                if (fileId.isNullOrEmpty())
+                    continue    // no fileId, so we can't proceed.  Just go to the next one.
+
+                // we now have the fileId, so allow this delete to proceed
+                records.add(DeleteMarker(MarkerKey(fileId,t.idx), t.deletedAt))
+            } //end for(all tombstones)
+
+            return@withContext DeleteMarkerResult(true, records)
+        }
+
+
+    private data class ClientMarkerResult(
+        val ok: Boolean,
+        val records: List<ClientMarker>
+    )
+    private suspend fun getClientMarkers(marker: MarkerType): ClientMarkerResult {
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookDao = db.bookDao()
+        val books = bookDao.getAllBooks()
+
+        val records = mutableListOf<ClientMarker>()
+        for (book in books) {
+
+            val rc = mapBookId(book.bookId, book.sha256, book.filesize)
+            if (!rc.ok)
+                continue    // couldnt' get fileId
+            val fileId = rc.fileId
+            if (fileId.isNullOrEmpty())
+                continue    // we don't have the fileId, so just skip this one & goto next
+
+            if (marker == MarkerType.BOOKMARK) {
+                val bookmarks = db.bookmarkDao().getBookmarksForBook(book.bookId)
+                for (bm in bookmarks)
+                    records.add(ClientMarker(MarkerKey(fileId,bm.id.toLong()), bm.lastUpdated))
+            }
+            if (marker == MarkerType.HIGHLIGHT) {
+                val highlights = db.highlightDao().getHighlightsForBook(book.bookId)
+                for (hl in highlights)
+                    records.add(ClientMarker(MarkerKey(fileId,hl.id.toLong()), hl.lastUpdated))
+            }
+        }
+
+        return ClientMarkerResult(true, records)
     }
 
 }

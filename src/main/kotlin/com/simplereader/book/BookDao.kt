@@ -4,8 +4,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.simplereader.bookmark.BookmarkEntity
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BookDao {
@@ -28,5 +26,5 @@ interface BookDao {
     suspend fun updateProgress(bookId: String, progress: String?)
 
     @Query("UPDATE book_data SET lastUpdated = :updatedAt WHERE bookId = :bookId")
-    suspend fun updateBookTimestamp(bookId: String, updatedAt: Long)
+    suspend fun updateTimestamp(bookId: String, updatedAt: Long)
 }

@@ -10,6 +10,6 @@ data class HighlightEntity(
     val id: Int,            // unique id for this highlight in this book
     val selection: String,  // serialised pointer to highlighted part of book
     val label: String,      // text to be displayed to user
-    val color: String,      // colour of the highlight
+    val colour: String,      // colour of the highlight
     val lastUpdated: Long   // timestamp of last update
 )

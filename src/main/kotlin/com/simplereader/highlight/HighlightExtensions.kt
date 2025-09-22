@@ -12,7 +12,7 @@ fun Highlight.toEntity(): HighlightEntity {
         id = id,
         label = label ?: "\"Highlight ${this.id}\"",
         selection = selection.toJSON().toString(),
-        color = color,
+        colour = color,
         lastUpdated = Instant.now().toEpochMilli()
     )
 }
@@ -26,6 +26,6 @@ fun HighlightEntity.toHighlight(): Highlight {
         id = id,
         label = label,
         selection = parsedLocator,
-        color = color
+        color = colour
     )
 }
