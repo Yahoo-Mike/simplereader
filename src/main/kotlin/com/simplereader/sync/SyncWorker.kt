@@ -74,6 +74,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         }
         if (SyncTables.HIGHLIGHT in changed) {
             // sync highlight
+            syncHighlightData()
         }
 
         Log.i(TAG, "  END: sync for $changed")
@@ -212,6 +213,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             val mask = tm.toMask()
             val rule = bookRules.firstOrNull { it.mask == mask }
             if (rule != null) {
+Log.d(TAG, "BOOK ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverUpdate} ${tm.serverDelete}")
                 rule.action(fileId, tm)
             } else {
                 Log.w(TAG, "syncBookData: unexpected error")
@@ -285,10 +287,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                     ?: return@withContext ServerRecordsResult(false, emptyList())
 
                 for (row in resp.rows) {
-                    records += ServerRecord (  row.getString("fileId"),
-                                            row.optString("progress",""),
-                                           row.getLong("updatedAt"),
-                                           row.optLong("deletedAt",0L) )
+                    records += ServerRecord (
+                        row.getString("fileId"),
+                        row.optString("progress").takeUnless { it.isBlank() },
+                        row.getLong("updatedAt"),
+                        row.optLong("deletedAt", 0L).takeIf { it != 0L } )
                 }
 
                 if (resp.rows.size < throttle) break // we've got them all, so we can leave now...
@@ -963,6 +966,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             val mask = tm.toMask()
             val rule = markerRules.firstOrNull { it.mask == mask }
             if (rule != null) {
+Log.d(TAG, "Bookmark ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverUpdate} ${tm.serverDelete}")
                 rule.action(MarkerType.BOOKMARK, key.fileId, key.id.toInt(), tm)
             } else {
                 Log.w(TAG, "syncBookmarkData: unexpected error")
@@ -1037,6 +1041,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             val mask = tm.toMask()
             val rule = markerRules.firstOrNull { it.mask == mask }
             if (rule != null) {
+Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverUpdate} ${tm.serverDelete}")
                 rule.action(MarkerType.HIGHLIGHT, key.fileId, key.id.toInt(), tm)
             } else {
                 Log.w(TAG, "syncHighlightData: unexpected error")
@@ -1341,7 +1346,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             row.getString("selection"),
             row.getString("label"),
             row.getString("colour"),
-            row.getLong("lastUpdated") )
+            row.getLong("updatedAt") )
         db.highlightDao().insertHighlight(newHighlight)
 
         return true
@@ -1382,9 +1387,10 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                     ?: return@withContext ServerMarkerResult(false, emptyList())
 
                 for (row in resp.rows) {
-                    records += ServerMarker (  MarkerKey(row.getString("fileId"),row.getLong("id")),
-                                    row.getLong("updatedAt"),
-                                    row.optLong("deletedAt",0L) )
+                    records += ServerMarker (
+                        MarkerKey(row.getString("fileId"),row.getLong("id")),
+                        row.getLong("updatedAt"),
+                        row.optLong("deletedAt",0L).takeIf { it != 0L } )
                 }
 
                 if (resp.rows.size < throttle) break // we've got them all, so we can leave now...
