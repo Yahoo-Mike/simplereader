@@ -1,7 +1,7 @@
 plugins {
     id("com.android.library") version "8.12.3"
     id("org.jetbrains.kotlin.android") version "2.2.20"
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+    id("com.google.devtools.ksp") version "2.2.20-2.0.3"
 }
 
 group = "com.simplereader"
