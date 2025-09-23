@@ -3,7 +3,14 @@ package com.simplereader
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import androidx.fragment.app.FragmentManager
 import com.simplereader.reader.ReaderActivity
+import com.simplereader.settings.SettingsBottomSheet
+import com.simplereader.sync.SyncManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * kotlin version created by avez raj  on 13 Sep 2017
@@ -13,25 +20,38 @@ import com.simplereader.reader.ReaderActivity
 //
 // SimpleReader: singleton class
 //
-class SimpleReader {
-    private var context: Context? = null
+class SimpleReader private constructor(ctx:Context){
+    private val appContext: Context = ctx.applicationContext
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // default constructor is private to prevent external instantiation
-    private constructor()
-
-    // valid constructor is private to protect singleton status
-    private constructor(context: Context) {
-        this.context = context
+    init {
+        ioScope.launch {
+            // start the syncmanager working in the background (it will automatically kick off a syncNow)
+            SyncManager.getInstance(appContext).start()
+        }
     }
 
+    // open a book, given the filepath
     fun openBook(filePath: String): SimpleReader? {
         val intentReaderActivity = getIntentFromUrl(filePath)
-        context!!.startActivity(intentReaderActivity)
+        appContext!!.startActivity(intentReaderActivity)
         return singleton
     }
 
-      private fun getIntentFromUrl(filePath: String): Intent {
-        val intent = Intent(context, ReaderActivity::class.java)
+    // displays a bottom sheet for entering the server settings
+    //  context:  UI context over which to display the settings
+    //
+    // user should call like this in a Fragment:
+    //      SimpleReader.getInstance().serverSettings(parentFragmentManager)
+    //  or like this in an AppCompatActivity:
+    //      SimpleReader.serverSettings(requireActivity().supportFragmentManager)
+    fun serverSettings(fragManager : FragmentManager) {
+        val sheet = SettingsBottomSheet()
+        sheet.show(fragManager, sheet.tag)
+    }
+
+    private fun getIntentFromUrl(filePath: String): Intent {
+        val intent = Intent(appContext, ReaderActivity::class.java)
 
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         intent.putExtra(ReaderActivity.INTENT_FILENAME, filePath)

@@ -10,8 +10,10 @@ import com.simplereader.highlight.HighlightDao
 import com.simplereader.highlight.HighlightEntity
 import com.simplereader.settings.SettingsDao
 import com.simplereader.settings.SettingsEntity
+import com.simplereader.sync.DeletedRecordsEntity
+import com.simplereader.sync.SyncFileIdMapEntity
+import com.simplereader.sync.SyncCheckpointEntity
 import com.simplereader.sync.SyncDao
-import com.simplereader.sync.SyncEntity
 
 @Database(
     entities = [
@@ -19,7 +21,9 @@ import com.simplereader.sync.SyncEntity
         BookmarkEntity::class,
         HighlightEntity::class,
         SettingsEntity::class,
-        SyncEntity::class
+        SyncFileIdMapEntity::class,
+        SyncCheckpointEntity::class,
+        DeletedRecordsEntity::class
        ],
     version = 1,
     exportSchema = false)

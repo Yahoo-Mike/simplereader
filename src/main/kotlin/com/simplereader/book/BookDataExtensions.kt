@@ -16,6 +16,8 @@ fun BookData.toBookEntity(): BookDataEntity {
         pubFile = getFileName(),
         mediaType = getMediaType().let { gson.toJson(it) },
         currentProgress = currentLocation?.toJSON()?.toString(),
+        sha256 = getSHA256(),
+        filesize = getFileSize(),
         lastUpdated = Instant.now().toEpochMilli()
     )
 }

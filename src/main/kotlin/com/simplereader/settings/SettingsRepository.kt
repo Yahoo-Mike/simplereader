@@ -1,5 +1,6 @@
 package com.simplereader.settings
 
+import android.util.Log
 import androidx.room.RoomDatabase
 import androidx.room.withTransaction
 import com.simplereader.settings.Settings.Companion.DEFAULT_FONT
@@ -26,7 +27,8 @@ class SettingsRepository(private val db: RoomDatabase, private val dao: Settings
     }
 
     // update sync server name and username
-    suspend fun updateOrInsertServerAndUser(server: String?, user: String?) = db.withTransaction {
+    suspend fun updateOrInsertServerAndUser(server: String?, user: String?) {
+
         dao.insertIfMissing(SettingsEntity(
             id = 1,
             font = DEFAULT_FONT.name,
@@ -40,7 +42,7 @@ class SettingsRepository(private val db: RoomDatabase, private val dao: Settings
     }
 
     // update password for sync server
-    suspend fun updateOrInsertPassword(plain: String?) = db.withTransaction {
+    suspend fun updateOrInsertPassword(plain: String?) {
         // ensure the singleton row exists
         dao.insertIfMissing(
             SettingsEntity(

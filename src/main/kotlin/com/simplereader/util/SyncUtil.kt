@@ -8,6 +8,10 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.io.File
+import java.security.MessageDigest
+
 private const val KEY_ALIAS = "simplereader.sync_password_key"
 
 data class Encrypted(val iv: ByteArray, val ct: ByteArray) {
@@ -53,4 +57,42 @@ fun decryptToString(secretKey: SecretKey, enc: Encrypted): String {
     cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(128, enc.iv))
     val bytes = cipher.doFinal(enc.ct)
     return String(bytes, Charsets.UTF_8)
+}
+
+// ensure that server is in form:  "https://my.domain:port/"
+// returns normalised base address.  If there's an error, it just returns "base"
+fun normaliseServerBase(base: String): String {
+    var s = base.trim()
+    if (s.isEmpty()) return base
+
+    // add/force HTTPS scheme
+    s = when {
+        "://" !in s -> "https://$s"
+        s.startsWith("http://", ignoreCase = true) ->
+            "https://${s.substringAfter("://")}"
+        else -> s
+    }
+
+    // parse & rebuild as scheme + host +  port + root path
+    val url = s.toHttpUrlOrNull() ?: return base
+    val normalized = url.newBuilder()
+        .encodedPath("/")   // drop any user-entered path
+        .query(null)
+        .fragment(null)
+        .build()
+        .toString()
+
+    return normalized.trimEnd('/') + "/"  // ensure trailing slash
+}
+
+fun sha256Hex(file: File): String {
+    val md = MessageDigest.getInstance("SHA-256")
+    file.inputStream().use { ins ->
+        val buf = ByteArray(64 * 1024)
+        while (true) {
+            val n = ins.read(buf); if (n <= 0) break
+            md.update(buf, 0, n)
+        }
+    }
+    return md.digest().joinToString("") { "%02x".format(it) }
 }

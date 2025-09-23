@@ -79,11 +79,26 @@ or for kotlin
 ```kotlin
 val reader = SimpleReader.getInstance()
 ```
-
-Call the function `openBook()`:
+#### API
+*openBook()*
+To open a book, call with the fully-qualified filename.
+Only *.epub abd *.pdf are supported.
 
 ```kotlin
 reader.openBook("/data/user/0/com.myapp/files/illiad.epub")
+```
+
+*serverSettings()*
+Displays a bottom sheet for entering the server settings.
+If user successfully changes the settings, a full sync will be kicked off
+when user dismisses dialog or presses "Sync Now".
+Host should call like this from a Fragment child: 
+```kotlin
+reader.serverSettings(parentFragmentManager)
+```
+Or like this from an AppCompatActivity child: 
+```kotlin
+reader.serverSettings(requireActivity().supportFragmentManager)
 ```
 
 
