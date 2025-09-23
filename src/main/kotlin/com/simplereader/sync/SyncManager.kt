@@ -6,6 +6,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.room.InvalidationTracker
+import com.simplereader.bookmark.Bookmark
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.flow.callbackFlow
@@ -21,6 +22,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 import com.simplereader.util.MiscUtil
 import com.simplereader.data.ReaderDatabase
+import com.simplereader.highlight.Highlight
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_EPUB
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_PDF
 import com.simplereader.util.sha256Hex
@@ -253,6 +255,25 @@ class SyncManager private constructor (ctx:Context) {
             }
         }
 
+    }
+
+    suspend fun flagBookmarkDeleted(bookmark: Bookmark) {
+        val db = ReaderDatabase.getInstance(appContext)
+        db.syncDao().addDeletedRecord(
+            DeletedRecordsEntity(
+                    SyncTables.BOOKMARK,
+                    bookmark.bookId,
+                    bookmark.id,
+                    deletedAt=System.currentTimeMillis()) )
+    }
+    suspend fun flagHighlightDeleted(highlight: Highlight) {
+        val db = ReaderDatabase.getInstance(appContext)
+        db.syncDao().addDeletedRecord(
+            DeletedRecordsEntity(
+                SyncTables.HIGHLIGHT,
+                highlight.bookId,
+                highlight.id,
+                deletedAt=System.currentTimeMillis()) )
     }
 
     ////////////////////////////////////

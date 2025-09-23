@@ -19,7 +19,7 @@ data class ClientRecord(
 )
 
 // highlights and bookmarks
-data class MarkerKey(val fileId: String, val id: Long)
+data class MarkerKey(val fileId: String, val id: Int)
 
 data class ServerMarker(
     val key: MarkerKey,

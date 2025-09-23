@@ -213,7 +213,6 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             val mask = tm.toMask()
             val rule = bookRules.firstOrNull { it.mask == mask }
             if (rule != null) {
-Log.d(TAG, "BOOK ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverUpdate} ${tm.serverDelete}")
                 rule.action(fileId, tm)
             } else {
                 Log.w(TAG, "syncBookData: unexpected error")
@@ -876,10 +875,10 @@ Log.d(TAG, "BOOK ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverU
         MarkerRule("SU", 0b0010, ::marker0010),
         MarkerRule("SU+SD", 0b0011, ::nop1),        // deleted on server, doesn't exist on client
 
-        MarkerRule("CD", 0b0100, ::deleteDeletedMarker),           // never existed on server, doesn't exist on client
-        MarkerRule("CD+SD", 0b0101, ::deleteDeletedMarker ),       // won't happen: if SD is non-null, then SU==SD
+        MarkerRule("CD", 0b0100, ::nop1),           // never existed on server, doesn't exist on client
+        MarkerRule("CD+SD", 0b0101, ::nop1 ),       // won't happen: if SD is non-null, then SU==SD
         MarkerRule("CD+SU", 0b0110, ::marker0110),
-        MarkerRule("CD+SU+SD", 0b0111, ::deleteDeletedMarker),     // already deleted on server and client
+        MarkerRule("CD+SU+SD", 0b0111, ::nop1),     // already deleted on server and client
 
         MarkerRule("CU", 0b1000, ::marker1000),
         MarkerRule("CU+SD", 0b1001, ::nop1),        // won't happen: if SD is non-null, then SU==SD
@@ -887,7 +886,7 @@ Log.d(TAG, "BOOK ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverU
         MarkerRule("CU+SU+SD", 0b1011, ::marker1011),
 
         MarkerRule("CU+CD", 0b1100, ::marker1100),
-        MarkerRule("CU+CD+SD",0b1101, ::deleteDeletedMarker),      // won't happen: if SD is non-null, then SU==SD
+        MarkerRule("CU+CD+SD",0b1101, ::nop1),      // won't happen: if SD is non-null, then SU==SD
         MarkerRule("CU+CD+SU", 0b1110, ::marker1110),
         MarkerRule("ALL", 0b1111, ::marker1111)
     )
@@ -966,7 +965,6 @@ Log.d(TAG, "BOOK ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverU
             val mask = tm.toMask()
             val rule = markerRules.firstOrNull { it.mask == mask }
             if (rule != null) {
-Log.d(TAG, "Bookmark ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverUpdate} ${tm.serverDelete}")
                 rule.action(MarkerType.BOOKMARK, key.fileId, key.id.toInt(), tm)
             } else {
                 Log.w(TAG, "syncBookmarkData: unexpected error")
@@ -1041,7 +1039,6 @@ Log.d(TAG, "Bookmark ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.ser
             val mask = tm.toMask()
             val rule = markerRules.firstOrNull { it.mask == mask }
             if (rule != null) {
-Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.serverUpdate} ${tm.serverDelete}")
                 rule.action(MarkerType.HIGHLIGHT, key.fileId, key.id.toInt(), tm)
             } else {
                 Log.w(TAG, "syncHighlightData: unexpected error")
@@ -1051,18 +1048,22 @@ Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.se
     }
 
     // deletes this marker from the "deleted_records" table
-    private suspend fun deleteDeletedMarker(marker: MarkerType,fileId: String, id: Int, t: SyncTimes? = null) : Boolean {
+    private suspend fun deleteDeletedMarker(marker: MarkerType,fileId: String, id: Int) : Boolean {
         val syncDao = ReaderDatabase.getInstance(appContext).syncDao()
         val bookId = syncDao.getBookIdForFileId(fileId)
         if (bookId==null) {
             Log.w(TAG, "unknown fileId")
             return false
         }
-        syncDao.deleteDeletedRecord(markerTable(marker), bookId)
+        syncDao.deleteDeletedRecordWithId(markerTable(marker), bookId, id)
         return true
     }
 
-    private suspend fun nop1(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean = true
+    private suspend fun nop1(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
+        if (t?.clientDelete != null)
+            deleteDeletedMarker(marker,fileId,id) // cleanup deleted_records table entry
+        return true
+    }
 
     // SU : new marker on the server, copy it to the client
     private suspend fun marker0010(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
@@ -1113,7 +1114,7 @@ Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.se
             return false
 
         if (t.serverUpdate == t.clientUpdate)
-            return true// nop, client and server in sync
+            return true     // nop, client and server in sync
 
         if (t.serverUpdate!! > t.clientUpdate!!) { // SU wins
             if (marker == MarkerType.BOOKMARK)
@@ -1152,6 +1153,7 @@ Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.se
     }
 
     // CU+CD: server has not seen this book
+    // untested: hard to unit test because we've generally processed the delete before there's another update
     private suspend fun marker1100(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
         if (t == null) return false
         if (t.clientUpdate == null || t.clientDelete == null)
@@ -1171,6 +1173,7 @@ Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.se
     }
 
     // CU+CD+SU
+    // untested: hard to unit test because we've generally processed the delete before there's another update
     private suspend fun marker1110(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
         if (t == null) return false
         if (t.clientUpdate == null || t.clientDelete == null || t.serverUpdate==null )
@@ -1203,6 +1206,7 @@ Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.se
     }
 
     // CU+CD+SU+SD:  we assume SU==SD, so this is like 1101
+    // untested: hard to unit test because we've generally processed the delete before there's another update
     private suspend fun marker1111(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
         if (t == null) return false
         if (t.clientUpdate == null || t.clientDelete == null || t.serverUpdate==null || t.serverDelete==null)
@@ -1286,7 +1290,7 @@ Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.se
         val newBookmark = BookmarkEntity(bookId,idx,
                                 row.getString("label"),
                                 row.getString("locator"),
-                                row.getLong("lastUpdated") )
+                                row.getLong("updatedAt") )
         db.bookmarkDao().insertBookmark(newBookmark)
 
         return true
@@ -1388,7 +1392,7 @@ Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.se
 
                 for (row in resp.rows) {
                     records += ServerMarker (
-                        MarkerKey(row.getString("fileId"),row.getLong("id")),
+                        MarkerKey(row.getString("fileId"),row.getInt("id")),
                         row.getLong("updatedAt"),
                         row.optLong("deletedAt",0L).takeIf { it != 0L } )
                 }
@@ -1459,12 +1463,12 @@ Log.d(TAG, "Highlight ${rule.name} ${tm.clientUpdate} ${tm.clientDelete} ${tm.se
             if (marker == MarkerType.BOOKMARK) {
                 val bookmarks = db.bookmarkDao().getBookmarksForBook(book.bookId)
                 for (bm in bookmarks)
-                    records.add(ClientMarker(MarkerKey(fileId,bm.id.toLong()), bm.lastUpdated))
+                    records.add(ClientMarker(MarkerKey(fileId,bm.id), bm.lastUpdated))
             }
             if (marker == MarkerType.HIGHLIGHT) {
                 val highlights = db.highlightDao().getHighlightsForBook(book.bookId)
                 for (hl in highlights)
-                    records.add(ClientMarker(MarkerKey(fileId,hl.id.toLong()), hl.lastUpdated))
+                    records.add(ClientMarker(MarkerKey(fileId,hl.id), hl.lastUpdated))
             }
         }
 

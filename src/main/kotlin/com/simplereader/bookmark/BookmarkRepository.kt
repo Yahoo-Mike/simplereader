@@ -1,5 +1,8 @@
 package com.simplereader.bookmark
 
+import com.simplereader.AppContext
+import com.simplereader.sync.SyncManager
+
 class BookmarkRepository(private val bookmarkDao: BookmarkDao) {
 
     suspend fun getBookmarksForBook(bookId: String): List<Bookmark> {
@@ -17,5 +20,7 @@ class BookmarkRepository(private val bookmarkDao: BookmarkDao) {
 
     suspend fun deleteBookmark(bookmark: Bookmark) {
         bookmarkDao.deleteBookmark(bookmark.toEntity())
+        val ctx = AppContext.get() ?: return
+        SyncManager.getInstance(ctx).flagBookmarkDeleted(bookmark)
     }
 }

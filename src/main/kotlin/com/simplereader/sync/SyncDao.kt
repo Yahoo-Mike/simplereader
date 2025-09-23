@@ -9,18 +9,6 @@ import androidx.room.Query
 interface SyncDao {
 
         // ----------------------
-        // Checkpoint operations
-        // ----------------------
-        @Query("SELECT lastSync FROM sync_checkpoint WHERE tableName = :tableName")
-        suspend fun getCheckpoint(tableName: String): Long?
-
-        @Insert(onConflict = OnConflictStrategy.REPLACE)
-        suspend fun updateCheckpoint(entity: SyncCheckpointEntity)
-
-        @Query("SELECT * FROM sync_checkpoint")
-        suspend fun getAllCheckpoints(): List<SyncCheckpointEntity>
-
-        // ----------------------
         // Mapping operations
         // ----------------------
         @Query("SELECT bookId FROM sync_fileid_map WHERE fileId = :fileId LIMIT 1")
@@ -49,4 +37,7 @@ interface SyncDao {
 
         @Query("DELETE FROM deleted_records WHERE bookId = :bookId AND tableName = :tabnam")
         suspend fun deleteDeletedRecord(tabnam: String, bookId: String)
+
+        @Query("DELETE FROM deleted_records WHERE idx = :id AND bookId = :bookId AND tableName = :tabnam")
+        suspend fun deleteDeletedRecordWithId(tabnam: String, bookId: String, id: Int)
 }

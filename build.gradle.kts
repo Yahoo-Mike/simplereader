@@ -1,11 +1,11 @@
 plugins {
     id("com.android.library") version "8.12.3"
-    id("org.jetbrains.kotlin.android") version "2.2.10"
+    id("org.jetbrains.kotlin.android") version "2.2.20"
     id("com.google.devtools.ksp") version "2.2.10-2.0.2"
 }
 
 group = "com.simplereader"
-version = "1.2.1"
+version = "2.0.0"
 
 android {
     namespace = "com.simplereader"
@@ -68,7 +68,7 @@ dependencies {
     val coroutinesVersion = "1.10.2"
     val cryptoVersion = "1.1.0"
     val fragmentVersion = "1.8.9"
-    val lifecycleVersion = "2.9.3"
+    val lifecycleVersion = "2.9.4"
     val materialVersion = "1.13.0"
     val recyclerviewVersion = "1.4.0"
     val roomVersion = "2.8.0"

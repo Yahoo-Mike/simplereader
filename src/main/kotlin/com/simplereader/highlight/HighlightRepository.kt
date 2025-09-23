@@ -1,5 +1,8 @@
 package com.simplereader.highlight
 
+import com.simplereader.AppContext
+import com.simplereader.sync.SyncManager
+
 class HighlightRepository(private val highlightDao: HighlightDao) {
 
     suspend fun getHighlightsForBook(bookId: String): List<Highlight> {
@@ -54,5 +57,8 @@ class HighlightRepository(private val highlightDao: HighlightDao) {
 
     suspend fun deleteHighlight(highlight: Highlight) {
         highlightDao.deleteHighlight(highlight.toEntity())
+        val ctx = AppContext.get() ?: return
+        SyncManager.getInstance(ctx).flagHighlightDeleted(highlight)
+
     }
 }
