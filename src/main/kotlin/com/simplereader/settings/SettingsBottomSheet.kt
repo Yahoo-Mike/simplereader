@@ -95,6 +95,8 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
 
         // Persist changes
         lifecycleScope.launch {
+            val appCtx = requireContext().applicationContext
+
             withContext(NonCancellable) { // ensure this gets done despite onDestroy()
                 // update db
                 db.withTransaction {
@@ -106,10 +108,11 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
                     }
                 }
 
-                // inform SyncTickManager (if required)
-                if (freqChanged)
-                    SyncTickManager.scheduleNextTick(requireContext(), pendingFreq)
             }
+
+            // inform SyncTickManager (if required)
+            if (freqChanged)
+                SyncTickManager.scheduleNextTick(appCtx, pendingFreq)
 
             // update the local variables
             origServer = pendingServer
