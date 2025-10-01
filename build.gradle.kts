@@ -76,7 +76,7 @@ dependencies {
     val workVersion= "2.10.5"
 
     val gsonVersion = "2.13.2"
-    val readiumVersion = "3.1.2"
+    val readiumVersion = "3.1.1"
     val retrofitVersion = "3.0.0"
 
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
