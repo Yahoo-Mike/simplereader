@@ -21,8 +21,8 @@ interface SettingsDao {
     //
     // sync servername, username & password
     //
-    @Query("UPDATE settings SET syncServer = :syncServer, syncUser = :syncUser WHERE id = 1")
-    suspend fun updateSyncServerAndUser(syncServer: String?, syncUser: String?)
+    @Query("UPDATE settings SET syncServer = :syncServer, syncUser = :syncUser, syncFrequency = :freq WHERE id = 1")
+    suspend fun updateSyncServerUserFreq(syncServer: String?, syncUser: String?, freq: Int)
 
     @Query("UPDATE settings SET syncPasswordIv = :iv, syncPasswordCt = :ct WHERE id = 1")
     suspend fun updateSyncPassword(iv: ByteArray?, ct: ByteArray?)

@@ -51,10 +51,11 @@ object TokenManager {
                     fontSize = DEFAULT_FONT_SIZE,
                     syncServer = null,
                     syncUser = null,
+                    syncFrequency = SettingsEntity.NEVER,
                     syncPasswordIv = null,
                     syncPasswordCt = null
                 ))
-                dao.updateSyncServerAndUser(currentConfig?.server, currentConfig?.user)
+                dao.updateSyncServerUserFreq(currentConfig?.server, currentConfig?.user, currentConfig?.frequency ?: SettingsEntity.NEVER)
                 dao.updateSyncPassword(currentConfig?.passwordIv, currentConfig?.passwordCt)
 
                 return true

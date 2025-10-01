@@ -18,6 +18,8 @@
     <string name="settings_server">server:</string>
     <string name="settings_user">username:</string>
     <string name="settings_password">password:</string>
+    <string name="settings_frequency">sync:</string>
+    <string name="hint_frequency">mins between syncs (0 = never)</string>
     <string name="settings_server_hint">server.name:port</string>
     <string name="sync_now">Sync Now</string>
     <string name="server_test">Test Server</string>

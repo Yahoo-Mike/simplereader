@@ -1,11 +1,12 @@
 plugins {
     id("com.android.library") version "8.12.3"
     id("org.jetbrains.kotlin.android") version "2.2.20"
+    id("androidx.room")  version "2.8.1"    // Room Gradle plugin
     id("com.google.devtools.ksp") version "2.2.20-2.0.3"
 }
 
 group = "com.simplereader"
-version = "2.0.0"
+version = "2.1.0"
 
 android {
     namespace = "com.simplereader"
@@ -59,11 +60,11 @@ android {
 }
 
 dependencies {
-    val kotlinVersion = "2.2.10"
+    val kotlinVersion = "2.2.20"
 
     val activityVersion = "1.11.0"
     val appcompatVersion = "1.7.1"
-    val composeUiVersion = "1.9.1"
+    val composeUiVersion = "1.9.2"
     val constraintLayoutVersion = "2.2.1"
     val coroutinesVersion = "1.10.2"
     val cryptoVersion = "1.1.0"
@@ -71,11 +72,11 @@ dependencies {
     val lifecycleVersion = "2.9.4"
     val materialVersion = "1.13.0"
     val recyclerviewVersion = "1.4.0"
-    val roomVersion = "2.8.0"
-    val workVersion= "2.10.4"
+    val roomVersion = "2.8.1"
+    val workVersion= "2.10.5"
 
     val gsonVersion = "2.13.2"
-    val readiumVersion = "3.1.1"
+    val readiumVersion = "3.1.2"
     val retrofitVersion = "3.0.0"
 
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
@@ -137,6 +138,10 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:${retrofitVersion}")
     implementation("com.squareup.retrofit2:converter-gson:${retrofitVersion}")
 
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 // setup JVM toolchain (for kotlin and java)

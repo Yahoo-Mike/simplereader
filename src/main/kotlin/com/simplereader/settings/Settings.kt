@@ -1,6 +1,5 @@
 package com.simplereader.settings
 
-import androidx.room.ColumnInfo
 import com.simplereader.ui.font.ANDADA
 import com.simplereader.ui.font.LATO
 import com.simplereader.ui.font.LORA
@@ -14,13 +13,14 @@ data class Settings(
 
     val syncServer: String?,        // address of server running sync daemon
     val syncUser: String?,          // username for login to server
+    val syncFrequency : Int = SettingsEntity.NEVER,  // frequency of background syncs (in minutes, 0=never)
     val syncPasswordIv: ByteArray?, // GCM IV
     val syncPasswordCt: ByteArray?  // ciphertext
 ) {
     companion object {
         val DEFAULT_FONT = FontFamily.SERIF
         val DEFAULT_FONT_SIZE = 1.0
-        val DEFAULT = Settings(DEFAULT_FONT, DEFAULT_FONT_SIZE,null,null,null,null)
+        val DEFAULT = Settings(DEFAULT_FONT, DEFAULT_FONT_SIZE,null,null,SettingsEntity.NEVER, null,null)
 
         // supported fonts in readium's FontFamily, see: navigator.preferences.Types.kt
         val supportedFonts = listOf(
@@ -45,6 +45,7 @@ data class Settings(
                 fontSize == other.fontSize &&
                 syncServer == other.syncServer &&
                 syncUser == other.syncUser &&
+                syncFrequency == other.syncFrequency &&
                 (syncPasswordIv?.contentEquals(other.syncPasswordIv) ?: (other.syncPasswordIv == null)) &&
                 (syncPasswordCt?.contentEquals(other.syncPasswordCt) ?: (other.syncPasswordCt == null))
     }
@@ -54,6 +55,7 @@ data class Settings(
         result = 31 * result + fontSize.hashCode()
         result = 31 * result + (syncServer?.hashCode() ?: 0)
         result = 31 * result + (syncUser?.hashCode() ?: 0)
+        result = 31 * result + syncFrequency.hashCode()
         result = 31 * result + (syncPasswordIv?.contentHashCode() ?: 0)
         result = 31 * result + (syncPasswordCt?.contentHashCode() ?: 0)
         return result

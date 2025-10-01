@@ -25,6 +25,7 @@ import com.simplereader.data.ReaderDatabase
 import com.simplereader.highlight.Highlight
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_EPUB
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_PDF
+import com.simplereader.settings.SettingsEntity
 import com.simplereader.util.sha256Hex
 
 import kotlinx.coroutines.Dispatchers
@@ -62,7 +63,6 @@ class SyncManager private constructor (ctx:Context) {
 
         const val TAG_SYNC = "SYNC_TAG"
         const val WORK_SYNC_NOW = "SYNC_NOW"
-        const val WORK_SYNC_PERIODIC = "SYNC_PERIODIC"    // periodic background sync
 
         @Volatile private var INSTANCE: SyncManager? = null
 
@@ -112,9 +112,11 @@ class SyncManager private constructor (ctx:Context) {
 
         // STEP TWO: attach DB observers for push & periodic work
         pushJobs += attachPushObserversForPush()
-        scheduleSelfReschedulingSync()
 
-        // STEP THREE: immediately kick a one-off full sync using unique work
+        // STEP THREE: kick off background periodic schedule
+        SyncTickManager.scheduleNextTick(appContext,null)
+
+        // STEP FOUR: immediately kick a one-off full sync using unique work
         wm.enqueueUniqueWork(
             WORK_SYNC_NOW,
             ExistingWorkPolicy.REPLACE,
@@ -135,8 +137,8 @@ class SyncManager private constructor (ctx:Context) {
 
         // cancel any scheduled/ongoing work for these managers
         wm.cancelUniqueWork(WORK_SYNC_NOW)
-        wm.cancelUniqueWork(WORK_SYNC_PERIODIC)
         wm.cancelAllWorkByTag(TAG_SYNC)
+        SyncTickManager.cancelWork(wm)
 
         // Drop in-memory auth/session
         TokenManager.clearToken()
@@ -192,19 +194,6 @@ class SyncManager private constructor (ctx:Context) {
             }
         }
         .launchIn(scope)
-    }
-
-    // self-rescheduling one-off sync instead of true periodic work (using WorkManager)
-    // note: call this after a successful enable to schedule the *next* tick
-    private fun scheduleSelfReschedulingSync(delayMinutes: Long = 15) {
-        val tick = OneTimeWorkRequestBuilder<PeriodicSyncWorker>()
-            .setInitialDelay(delayMinutes, java.util.concurrent.TimeUnit.MINUTES)
-            .addTag(TAG_SYNC)
-            .build()
-
-        // REPLACE ensures only one future tick is queued at a time
-        // we intentionally DO NOT cancel running work here; this only schedules the next wake-up.
-        wm.enqueueUniqueWork(WORK_SYNC_PERIODIC, ExistingWorkPolicy.REPLACE, tick)
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////

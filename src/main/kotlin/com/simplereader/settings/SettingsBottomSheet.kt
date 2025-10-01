@@ -26,6 +26,7 @@ import com.simplereader.data.ReaderDatabase
 import com.simplereader.databinding.ViewSettingsBinding
 import com.simplereader.reader.ReaderViewModel
 import com.simplereader.sync.SyncManager
+import com.simplereader.sync.SyncTickManager
 import com.simplereader.util.normaliseServerBase
 
 class SettingsBottomSheet : BottomSheetDialogFragment() {
@@ -45,6 +46,7 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
     private var origServer: String? = null
     private var origUser: String? = null
     private var origPassword: String? = null  // decrypted (plain) snapshot
+    private var origFrequency: Int = SettingsEntity.NEVER
 
     companion object {
         @JvmField
@@ -82,30 +84,38 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
         val pendingServer = norm(b.serverTxtBox.text?.toString())
         val pendingUser = norm(b.userTxtBox.text?.toString())
         val pendingPw = norm(b.passwordTxtBox.text?.toString())
+        val pendingFreq = norm(b.frequencyTxtBox.text?.toString())?.toInt() ?: SettingsEntity.NEVER
 
         val serverChanged = pendingServer != origServer
         val userChanged = pendingUser != origUser
         val passChanged = pendingPw != origPassword
+        val freqChanged = pendingFreq != origFrequency
 
-        if (!(serverChanged || userChanged || passChanged)) return
+        if (!(serverChanged || userChanged || passChanged || freqChanged)) return
 
         // Persist changes
         lifecycleScope.launch {
             withContext(NonCancellable) { // ensure this gets done despite onDestroy()
+                // update db
                 db.withTransaction {
-                    if (serverChanged || userChanged) {
-                        repo.updateOrInsertServerAndUser(pendingServer, pendingUser)
+                    if (serverChanged || userChanged || freqChanged) {
+                        repo.updateOrInsertServerAndUser(pendingServer, pendingUser, pendingFreq)
                     }
                     if (passChanged) {
                         repo.updateOrInsertPassword(pendingPw) // encrypts & upserts IV/CT
                     }
                 }
+
+                // inform SyncTickManager (if required)
+                if (freqChanged)
+                    SyncTickManager.scheduleNextTick(requireContext(), pendingFreq)
             }
 
             // update the local variables
             origServer = pendingServer
             origUser = pendingUser
             origPassword = pendingPw
+            origFrequency = pendingFreq
         }
     }
 
@@ -133,11 +143,13 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
             origServer = s?.syncServer?.trim().takeUnless { it.isNullOrEmpty() }
             origUser   = s?.syncUser?.trim().takeUnless { it.isNullOrEmpty() }
             origPassword = pw?.trim().takeUnless { it.isNullOrEmpty() }
+            origFrequency = s?.syncFrequency ?: SettingsEntity.NEVER
 
             // Populate UI
             binding.serverTxtBox.setText(origServer.orEmpty())
             binding.userTxtBox.setText(origUser.orEmpty())
             binding.passwordTxtBox.setText(origPassword.orEmpty())
+            binding.frequencyTxtBox.setText(origFrequency.toString())
 
             updateButtonsEnabled() // enable/disable based on fields
         }
@@ -147,6 +159,7 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
         binding.serverTxtBox.doOnTextChanged(watcher)
         binding.userTxtBox.doOnTextChanged(watcher)
         binding.passwordTxtBox.doOnTextChanged(watcher)
+        // note: do not need to watch sync frequency (as it doesn't change the buttons)
 
         // Server Test: POST "/" expecting "server up"
         binding.btnServerTest.setOnClickListener {
@@ -180,6 +193,11 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
         val hasServer = binding.serverTxtBox.text?.isNotBlank() == true
         val hasUser   = binding.userTxtBox.text?.isNotBlank() == true
         val hasPass   = binding.passwordTxtBox.text?.isNotBlank() == true
+        // note: do not need to test sync frequency (as it doesn't change buttons)
+
+        binding.userTxtBox.isEnabled = hasServer
+        binding.passwordTxtBox.isEnabled = hasServer && hasUser
+        binding.frequencyTxtBox.isEnabled = hasServer && hasUser && hasPass
 
         // Server Test only needs server URL; Sync Now needs all three
         binding.btnServerTest.isEnabled = hasServer

@@ -1,8 +1,6 @@
 package com.simplereader.settings
 
-import android.util.Log
 import androidx.room.RoomDatabase
-import androidx.room.withTransaction
 import com.simplereader.settings.Settings.Companion.DEFAULT_FONT
 import com.simplereader.settings.Settings.Companion.DEFAULT_FONT_SIZE
 import com.simplereader.util.Encrypted
@@ -27,7 +25,7 @@ class SettingsRepository(private val db: RoomDatabase, private val dao: Settings
     }
 
     // update sync server name and username
-    suspend fun updateOrInsertServerAndUser(server: String?, user: String?) {
+    suspend fun updateOrInsertServerAndUser(server: String?, user: String?, freq: Int) {
 
         dao.insertIfMissing(SettingsEntity(
             id = 1,
@@ -35,10 +33,11 @@ class SettingsRepository(private val db: RoomDatabase, private val dao: Settings
             fontSize = DEFAULT_FONT_SIZE,
             syncServer = null,
             syncUser = null,
+            syncFrequency = SettingsEntity.NEVER,
             syncPasswordIv = null,
             syncPasswordCt = null
         ))
-        dao.updateSyncServerAndUser(server, user)
+        dao.updateSyncServerUserFreq(server, user, freq)
     }
 
     // update password for sync server
@@ -51,6 +50,7 @@ class SettingsRepository(private val db: RoomDatabase, private val dao: Settings
                 fontSize = DEFAULT_FONT_SIZE,
                 syncServer = null,
                 syncUser = null,
+                syncFrequency = SettingsEntity.NEVER,
                 syncPasswordIv = null,
                 syncPasswordCt = null
             )

@@ -25,8 +25,12 @@ import com.simplereader.sync.SyncDao
         SyncCheckpointEntity::class,
         DeletedRecordsEntity::class
        ],
-    version = 1,
-    exportSchema = false)
+    version = 2,
+    exportSchema = true,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2)
+    ]
+)
 abstract class ReaderDatabase : RoomDatabase() {
 
     abstract fun bookDao(): BookDao

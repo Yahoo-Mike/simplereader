@@ -103,6 +103,43 @@
         app:layout_constraintStart_toStartOf="@+id/guideline"
         tools:ignore="Autofill" />
 
+    <!-- Sync Frequency -->
+
+    <TextView
+        android:id="@+id/frequencyLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:gravity="end"
+        android:text="@string/settings_frequency"
+        app:layout_constraintEnd_toStartOf="@+id/guideline"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/passwordLabel" />
+
+    <EditText
+        android:id="@+id/frequencyTxtBox"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minEms="4"
+        android:inputType="number"
+        app:layout_constraintTop_toBottomOf="@id/passwordTxtBox"
+        app:layout_constraintStart_toStartOf="@+id/guideline"
+        tools:ignore="Autofill" />
+
+    <TextView
+        android:id="@+id/frequencyHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp"
+        android:text="@string/hint_frequency"
+        android:textStyle="italic"
+        app:layout_constraintStart_toEndOf="@+id/frequencyTxtBox"
+        app:layout_constraintTop_toBottomOf="@+id/passwordTxtBox" />
+
     <!-- Buttons: Server Test & Sync Now (side-by-side, equal widths in a horizontal chain) -->
     <Button
         android:id="@+id/btnServerTest"
@@ -110,7 +147,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="@string/server_test"
-        app:layout_constraintTop_toBottomOf="@id/passwordTxtBox"
+        app:layout_constraintTop_toBottomOf="@id/frequencyTxtBox"
         app:layout_constraintStart_toStartOf="@+id/guideline"
         app:layout_constraintEnd_toStartOf="@+id/btnSyncNow" />
 
@@ -122,7 +159,7 @@
         android:layout_marginTop="24dp"
         android:layout_marginStart="12dp"
         android:text="@string/sync_now"
-        app:layout_constraintTop_toBottomOf="@id/passwordTxtBox"
+        app:layout_constraintTop_toBottomOf="@id/frequencyTxtBox"
         app:layout_constraintStart_toEndOf="@+id/btnServerTest"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_chainStyle="packed" />
