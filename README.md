@@ -21,9 +21,17 @@ cd libs/simplereader
 git clone https://github.com/Yahoo-Mike/simplereader.git .
 ```
 
-Add following dependency to your project `settings.gradle.kts` file:
+Add following dependency and jitpack.io repo to your project `settings.gradle.kts` file.  Jitpack.io
+is required for the latest version of Readium to compile (3.1.2):
 
 ```groovy
+dependencyResolutionManagement {
+    repositories {
+        ...
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+
 includeBuild("libs/simplereader")
 ```
 
