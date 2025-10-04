@@ -33,8 +33,10 @@ class SimpleReader private constructor(ctx:Context){
 
     // open a book, given the filepath
     fun openBook(filePath: String): SimpleReader? {
+        val ctx = requireNotNull(appContext) { "Call EReader.init(context) first" }
+
         val intentReaderActivity = getIntentFromUrl(filePath)
-        appContext!!.startActivity(intentReaderActivity)
+        ctx.startActivity(intentReaderActivity)
         return singleton
     }
 
@@ -53,7 +55,7 @@ class SimpleReader private constructor(ctx:Context){
     private fun getIntentFromUrl(filePath: String): Intent {
         val intent = Intent(appContext, ReaderActivity::class.java)
 
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         intent.putExtra(ReaderActivity.INTENT_FILENAME, filePath)
 
         return intent
