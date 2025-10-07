@@ -28,6 +28,9 @@ import kotlinx.coroutines.launch
 import org.readium.r2.navigator.preferences.FontFamily
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
+import org.readium.r2.shared.publication.services.positions
+import org.readium.r2.shared.util.mediatype.MediaType
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalReadiumApi::class)
 class ReaderViewModel(
@@ -140,8 +143,48 @@ class ReaderViewModel(
 
     }
 
-    fun onSearchResultSelected(locator: Locator) {
-        _gotoLocator.value = ReaderEvent(locator)
+    // called when user inputs a position to go to (in ReaderActivity)
+    // for PDFs (fixed-page layout) this is a page number
+    // for EPUBS (reflowable or fixed-page) this could be a percentage
+    fun gotoPosition(pos: Int) {
+        viewModelScope.launch {
+            val book = bookData.value ?: return@launch
+
+            when (book.getMediaType()) {
+                MediaType.Companion.EPUB -> gotoPercent(pos)
+                MediaType.Companion.PDF -> gotoPage(pos)
+                else -> return@launch
+            }
+        }
     }
 
+    private suspend fun gotoPercent(percent: Int) {
+        val book = bookData.value ?: return
+        val positions = book.publication.positions()      // one locator per “location”
+        if (positions.isEmpty()) return
+
+        val p = percent.coerceIn(0, 100)
+        val idx = ((p / 100.0) * (positions.size - 1)).roundToInt()
+        gotoLocation(positions[idx])                      // emits your _gotoLocator
+    }
+
+    private suspend fun gotoPage(pageIn: Int) {
+        if (pageIn < 1) return    // guardrail
+        val book = bookData.value ?: return
+        val link = book.publication.readingOrder.firstOrNull() ?: return
+        val mime = link.mediaType ?: book.getMediaType() ?: return
+
+        val totalPages = book.publication.positions().size
+        val page = pageIn.coerceIn(1, totalPages)
+
+        val locator = Locator(
+            href = link.url(),
+            mediaType = mime,
+            locations = Locator.Locations(
+                fragments = listOf("page=$page"),
+                position = page
+            )
+        )
+        gotoLocation(locator) // your existing method
+    }
 }

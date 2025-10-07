@@ -41,7 +41,8 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
 
         // search adapter
         adapter = SearchResultsAdapter { searchResult ->
-            readerViewModel.onSearchResultSelected(searchResult.locator)
+            // when user selects a search result we jump to that location
+            readerViewModel.gotoLocation(searchResult.locator)
             (requireActivity() as? ReaderActivity)?.closeSearchUI()
         }
         binding.searchResultsRecycler.adapter = adapter

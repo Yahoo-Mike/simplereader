@@ -6,18 +6,21 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
@@ -128,9 +131,6 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         binding = ActivityReaderBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Fix for screen get turned off while reading
-        //window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         mFilename = intent.extras!!.getString(INTENT_FILENAME)
 
         // setup the action bar
@@ -160,6 +160,11 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
             }
         }
         onBackPressedDispatcher.addCallback(this, backCallback)
+
+        // watch for user pressing the progress indicator (which allows them to jump to page#)
+        binding.progressIndicator?.setOnClickListener {
+            showGotoDialog()
+        }
 
         this.savedInstanceState = savedInstanceState
         // note: fragment is not started until we know which type to start...
@@ -378,7 +383,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
         val filename = mFilename ?: "unknown"
 
-        var initData = EpubData(
+        val initData = EpubData(
             publication = publication,
             pubName = filename,
             currentLocation = null,     // a default location
@@ -554,11 +559,47 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     fun updateProgressIndicator(progress: Double) {
         val percent = (progress * 100.0).roundToInt()
         val text = when (percent) {
-            in 1..99 -> "$percent% read"
+            in 0..99 -> "$percent% read"
             100 -> "Finished"
             else -> ""
         }
         binding.progressIndicator.text = text
     }
 
+    // small dialog to allow user to enter page number (for PDFs) or % (for EPUBs)
+    private fun showGotoDialog() {
+        val isPdf = (readerViewModel.bookData.value?.getMediaType() == MediaType.PDF)
+        val myHint = if (isPdf) "page#" else "percentage (0-100)"
+
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = myHint
+            setSingleLine(true)
+        }
+
+        val padH = (24 * resources.displayMetrics.density).toInt()
+        val padV = (8 * resources.displayMetrics.density).toInt()
+        val container = FrameLayout(this).apply {
+            setPadding(padH, padV, padH, 0)
+            addView(
+                input,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Go to")
+            .setView(container)
+            .setPositiveButton("Go") { _, _ ->
+                val entered = input.text?.toString()?.trim().orEmpty()
+                val pos = entered.toIntOrNull()
+                if (pos != null)
+                    readerViewModel.gotoPosition(pos)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
 }
