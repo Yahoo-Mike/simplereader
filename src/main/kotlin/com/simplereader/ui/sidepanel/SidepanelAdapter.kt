@@ -11,6 +11,7 @@ import com.simplereader.databinding.ItemSidepanelBinding
 class SidepanelAdapter<T: SidepanelListItem>(
     private val onSidepanelItemSelected: (T) -> Unit,
     private val onDeleteConfirmed: (T) -> Unit,
+    private val onItemLongPressed: (T) -> Unit,
     private val extraItemProcessing: (ItemSidepanelBinding, T, Int) -> Unit
 ) : ListAdapter<T, SidepanelAdapter<T>.ViewHolder>(createDiffCallback()) {
 
@@ -22,24 +23,34 @@ class SidepanelAdapter<T: SidepanelListItem>(
                 binding.sidepanelContent.visibility = View.GONE
                 binding.deleteConfirmLayout.visibility = View.VISIBLE
 
+                // ensure the click and longPress listeners don't fire while we're in delete mode
+                binding.root.setOnClickListener(null)
+                binding.root.setOnLongClickListener(null)
+
+                // what to do if the user cancels the delete...
                 binding.deleteCancel.setOnClickListener {
                     pendingDeletePositions.remove(position)
                     notifyItemChanged(position)
                 }
 
+                // what to do if the user confirms the delete...
                 binding.deleteConfirm.setOnClickListener {
                     pendingDeletePositions.remove(position)
                     onDeleteConfirmed(item)
                 }
 
             } else {
+                // we're not in delete mode, so just set up the click and longpress listeners
                 binding.sidepanelContent.visibility = View.VISIBLE
                 binding.deleteConfirmLayout.visibility = View.GONE
                 binding.sidepanelLabel.text = item.getLabel()
 
-                binding.root.setOnClickListener {
-                    onSidepanelItemSelected(item)
+                binding.root.setOnClickListener { onSidepanelItemSelected(item) }
+                binding.root.setOnLongClickListener {
+                    onItemLongPressed(item)
+                    true        // signal that we consumed the long press
                 }
+
             }
         }
     }

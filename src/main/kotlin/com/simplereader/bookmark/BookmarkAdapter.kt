@@ -8,12 +8,14 @@ class BookmarkAdapter {
         fun create(
             onBookmarkSelected: (BookmarkListItem) -> Unit,
             onDeleteConfirmed: (BookmarkListItem) -> Unit,
+            onLongPress: (BookmarkListItem) -> Unit,
             extraItemProcessing: (ItemSidepanelBinding, BookmarkListItem, Int) -> Unit
 
         ): SidepanelAdapter<BookmarkListItem> {
             return SidepanelAdapter(
                 onSidepanelItemSelected = onBookmarkSelected,
                 onDeleteConfirmed = onDeleteConfirmed,
+                onItemLongPressed = onLongPress,
                 extraItemProcessing = extraItemProcessing
 
             )

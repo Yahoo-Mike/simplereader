@@ -33,12 +33,12 @@ class HighlightListFragment : SidepanelListFragment<HighlightListItem>() {
         }
 
     }
-
     // make a recyclerview adapter for Highlights
     override fun createAdapter() : SidepanelAdapter<HighlightListItem> {
         return HighlightAdapter.create(
             onHighlightSelected = { item -> readerViewModel.gotoLocation(item.highlight.selection) },
             onDeleteConfirmed = { item -> highlightViewModel.deleteHighlight(item.highlight) },
+            onLongPress = { _ -> }, // do nothing - don't allow user to change the label text
             extraItemProcessing  = { binding, item, position ->
                 // tint background of item in colour of the highlight
                 val color = when (item.highlight.color) {

@@ -22,12 +22,12 @@ class BookmarkListFragment : SidepanelListFragment<BookmarkListItem>() {
             adapter.submitList(bookmarkItems)
         }
     }
-
     // make a recyclerview adapter for Bookmarks
     override fun createAdapter() : SidepanelAdapter<BookmarkListItem> {
         return BookmarkAdapter.create(
             onBookmarkSelected = { item -> readerViewModel.gotoLocation(item.bookmark.locator) },
             onDeleteConfirmed = { item -> readerViewModel.deleteBookmark(item.bookmark) },
+            onLongPress = { item -> onLongPressed(item) },
             extraItemProcessing = { _, _, _ -> } // do nothing
         )
     }
