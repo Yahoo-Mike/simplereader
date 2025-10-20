@@ -25,7 +25,6 @@ import com.simplereader.data.ReaderDatabase
 import com.simplereader.highlight.Highlight
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_EPUB
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_PDF
-import com.simplereader.settings.SettingsEntity
 import com.simplereader.util.sha256Hex
 
 import kotlinx.coroutines.Dispatchers
@@ -829,12 +828,17 @@ class SyncManager private constructor (ctx:Context) {
         }
 
         val client = OkHttpClient.Builder()
-            .callTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.MINUTES)       // how long a single read() may block
+            .writeTimeout(5, TimeUnit.MINUTES)      // harmless for GETs
+            .callTimeout(0, TimeUnit.MILLISECONDS)  // 0 = no overall cap
+            .retryOnConnectionFailure(true)
             .build()
 
         val req = Request.Builder()
             .url("${server.trimEnd('/')}/book/$fileId")
-            .addHeader("Authorization", "Bearer $token")   // change if your server expects a different header
+            .addHeader("Authorization", "Bearer $token")    // change if your server expects a different header
+            .addHeader("Accept-Encoding", "identity")       // ensures Content-Length matches bytes written
             .get()
             .build()
 
