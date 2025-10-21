@@ -2,7 +2,6 @@ package com.simplereader.ui.sidepanel
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -40,6 +39,9 @@ abstract class SidepanelListFragment<T: SidepanelListItem> : Fragment() {
     abstract fun createAdapter() : SidepanelAdapter<T>  // make adapter for the recycleview
     abstract fun onAddClicked()                         // what to do when user presses "add" button
     abstract fun processOnViewCreated()                 // load recyclerview and observe for updates etc
+
+    // configuration for the dialog to display when user long presses on a cardview
+    protected open fun longPressCfg(item: T): LongPressConfig<T>? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -99,18 +101,23 @@ abstract class SidepanelListFragment<T: SidepanelListItem> : Fragment() {
     // onLongPressed: base class handles the recycler view and UI
     //                if user changes the label, we call labelUpdated() for children to persist it
     fun onLongPressed(item: SidepanelListItem) {
+        @Suppress("UNCHECKED_CAST")
+        val item = item as T
+        val cfg = longPressCfg(item) ?: return
+
         // allow user to enter a new label
         val ctx = requireContext()
 
         val input = EditText(ctx).apply {
-            setText(item.getLabel())
+            setText( cfg.initialText(item) )
             setSelection(text?.length ?: 0)
-            inputType = InputType.TYPE_CLASS_TEXT
         }
+        cfg.configureInput(input,item)
 
-        val pad = (24 * resources.displayMetrics.density).toInt()
+        val padH = (24 * resources.displayMetrics.density).toInt()
+        val padV = (8 * resources.displayMetrics.density).toInt()
         val container = FrameLayout(ctx).apply {
-            setPadding(pad, (8 * resources.displayMetrics.density).toInt(), pad, 0)
+            setPadding(padH, padV, padH, 0)
             addView(
                 input,
                 FrameLayout.LayoutParams(
@@ -121,22 +128,40 @@ abstract class SidepanelListFragment<T: SidepanelListItem> : Fragment() {
         }
 
         AlertDialog.Builder(ctx)
-            .setTitle("Rename bookmark")
+            .setTitle( cfg.title(item) )
             .setView(container)
             .setPositiveButton("Save") { _, _ ->
-                val newLabel = input.text?.toString()?.trim().orEmpty()
-                if (newLabel.isNotEmpty() && newLabel != item.getLabel()) {
+                val newText = input.text?.toString()?.trim().orEmpty()
+
+                // if text is empty, then delete it (if child has implemented persistDelete())
+                if (newText.isEmpty() && cfg.persistDelete != null) {
+                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                        val appctx = AppContext.get() ?: ctx
+                        cfg.persistDelete.invoke(appctx, item)
+
+                        // remove this item from recyclerview
+                        withContext(Dispatchers.Main) {
+                            val newList: List<T> =
+                                adapter.currentList.filterNot { it.areItemsTheSame(item) }
+                            adapter.submitList(newList)
+                        }
+                    }
+                    return@setPositiveButton
+                }
+
+                // dialog returned some text, did the user change it?
+                if (cfg.validateChange(newText, item)) {
 
                     viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                         val appctx = AppContext.get() ?: ctx
-                        item.persistLabel(appctx, newLabel)
+                        cfg.persistUpdate(appctx, item, newText)
 
                         // update the recyclerview
                         withContext(Dispatchers.Main) {
-                            @Suppress("UNCHECKED_CAST")
+                            val updated = cfg.applyLocal(item,newText)
                             val newList : List<T> = adapter.currentList.map { cur ->
                                 if (cur.areItemsTheSame(item))
-                                    cur.updateLabel(newLabel) as T
+                                    updated     // substitute in our new updated item
                                 else
                                     cur
                             }

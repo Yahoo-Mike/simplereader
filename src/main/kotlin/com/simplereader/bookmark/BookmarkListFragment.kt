@@ -1,6 +1,7 @@
 package com.simplereader.bookmark
 
 import androidx.fragment.app.Fragment
+import com.simplereader.ui.sidepanel.LongPressConfig
 import com.simplereader.ui.sidepanel.SidepanelAdapter
 import com.simplereader.ui.sidepanel.SidepanelListFragment
 
@@ -38,5 +39,13 @@ class BookmarkListFragment : SidepanelListFragment<BookmarkListItem>() {
             readerViewModel.addBookmark(locator)
         }
     }
+
+    // bookmark label dialog configuration
+    override fun longPressCfg(item: BookmarkListItem)  : LongPressConfig<BookmarkListItem> = LongPressConfig(
+        title = { "Rename bookmark" },
+        initialText = { it.getLabel() },
+        persistUpdate = { ctx, i, newTxt -> i.persistNewText(ctx,newTxt) },
+        applyLocal = { i, newTxt -> i.updateItemText(newTxt) as BookmarkListItem }
+    )
 
 }

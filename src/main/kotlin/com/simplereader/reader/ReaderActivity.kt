@@ -29,7 +29,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.snackbar.Snackbar
 import com.simplereader.databinding.ActivityReaderBinding
 import com.simplereader.R
 import com.simplereader.util.Readium
@@ -66,6 +65,7 @@ import com.simplereader.book.loadProgressFromDb
 import com.simplereader.bookmark.BookmarkListFragment
 import com.simplereader.bookmark.BookmarkRepository
 import com.simplereader.highlight.HighlightListFragment
+import com.simplereader.note.NoteListFragment
 import com.simplereader.search.SearchFragment
 import com.simplereader.search.SearchViewModel
 import com.simplereader.settings.SettingsBottomSheet
@@ -229,6 +229,10 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
                 true
             }
 
+            R.id.itemNote -> {
+                showSidepanel(NoteListFragment())
+                true
+            }
             R.id.itemSettings -> {
                 val sheet = SettingsBottomSheet()
                 sheet.show(supportFragmentManager, sheet.tag)

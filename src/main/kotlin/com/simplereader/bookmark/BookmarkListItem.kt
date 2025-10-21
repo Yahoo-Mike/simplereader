@@ -8,14 +8,14 @@ data class BookmarkListItem (val bookmark: Bookmark): SidepanelListItem() {
 
     override fun getLabel() : String = bookmark.label
 
-    override suspend fun persistLabel(ctx: Context, newLabel : String) {
+    override suspend fun persistNewText(ctx: Context, newText : String) {
         val dao = ReaderDatabase.getInstance(ctx).bookmarkDao()
-        val bm = bookmark.copy(label=newLabel).toEntity()
+        val bm = bookmark.copy(label=newText).toEntity()
         dao.insertBookmark(bm)
     }
 
-    override suspend fun updateLabel(newLabel: String): SidepanelListItem =
-        copy(bookmark = bookmark.copy(label=newLabel))
+    override fun updateItemText(newText: String): SidepanelListItem =
+        copy(bookmark = bookmark.copy(label=newText))
 
     override fun areItemsTheSame(other: SidepanelListItem) : Boolean {
         return  (other is BookmarkListItem) &&

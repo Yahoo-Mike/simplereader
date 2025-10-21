@@ -12,13 +12,6 @@
         tools:showAsAction="always" />
 
     <item
-        android:id="@+id/itemFonts"
-        android:icon="@drawable/icon_font"
-        android:title="@string/menu_item_fonts"
-        app:showAsAction="ifRoom"
-        tools:showAsAction="always" />
-
-    <item
         android:id="@+id/itemBookmarks"
         android:icon="@drawable/ic_bookmark"
         android:title="@string/bookmarks"
@@ -29,6 +22,20 @@
         android:id="@+id/itemHighlight"
         android:icon="@drawable/ic_highlight"
         android:title="@string/highlight"
+        app:showAsAction="ifRoom"
+        tools:showAsAction="always" />
+
+    <item
+        android:id="@+id/itemNote"
+        android:icon="@drawable/ic_note"
+        android:title="@string/note"
+        app:showAsAction="ifRoom"
+        tools:showAsAction="always" />
+
+    <item
+        android:id="@+id/itemFonts"
+        android:icon="@drawable/icon_font"
+        android:title="@string/menu_item_fonts"
         app:showAsAction="ifRoom"
         tools:showAsAction="always" />
 

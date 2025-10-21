@@ -1,28 +1,30 @@
-/*
- * Copyright 2021 Readium Foundation. All rights reserved.
- * Use of this source code is governed by the BSD-style license
- * available in the top-level LICENSE file of the project.
- *
- * modified by yahoo mike 18 May 2025
- *
- */
-
 package com.simplereader.reader
 
 import android.os.Bundle
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commitNow
 import com.simplereader.R
+import com.simplereader.data.ReaderDatabase
 
 import com.simplereader.model.BookData
 import com.simplereader.model.PdfData
+import com.simplereader.note.NoteRepository
+import com.simplereader.note.NoteViewModel
+import com.simplereader.note.NoteViewModelFactory
 import org.readium.adapter.pdfium.navigator.PdfiumNavigatorFactory
 import org.readium.adapter.pdfium.navigator.PdfiumNavigatorFragment
 import org.readium.adapter.pdfium.navigator.PdfiumPreferences
 
 import org.readium.r2.navigator.preferences.Axis
 import org.readium.r2.shared.ExperimentalReadiumApi
+import kotlin.getValue
 
 class PdfReaderFragment :  ReaderFragment() {
+
+    private lateinit var noteRepository: NoteRepository
+    private val noteViewModel: NoteViewModel by activityViewModels() {
+        NoteViewModelFactory(noteRepository)
+    }
 
     companion object {
         fun newInstance(): PdfReaderFragment {
@@ -45,6 +47,12 @@ class PdfReaderFragment :  ReaderFragment() {
                     initialLocator = pdfInitData.currentLocation
                 )
         }
+
+        // create the note repository (before accessing noteViewModel)
+        val daoNote =
+            ReaderDatabase.Companion.getInstance(requireActivity()).noteDao()
+        noteRepository = NoteRepository(daoNote)
+        noteViewModel.touch()  // instantiate the noteViewModel
 
         // IMPORTANT: Set the `fragmentFactory` before calling `super`.
         super.onCreate(savedInstanceState)
@@ -80,6 +88,9 @@ class PdfReaderFragment :  ReaderFragment() {
 
         @Suppress("UNCHECKED_CAST")
         navigator = childFragmentManager.findFragmentByTag(tag) as? PdfiumNavigatorFragment
+
+        // load all the notes for this PDF from db
+        noteViewModel.loadNotesFromDb(initData.bookId())
 
     }
 

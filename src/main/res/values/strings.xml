@@ -72,6 +72,7 @@ s
     <string name="blue_highlight">Blue Highlight</string>
     <string name="yellow_highlight">Yellow Highlight</string>
     <string name="define">Define</string>
+    <string name="note">Note</string>
     <string name="copy">Copy</string>
     <string name="exit">Exit</string>
     <string name="table_of_contents">Table of Contents</string>

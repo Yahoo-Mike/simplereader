@@ -38,7 +38,7 @@ data class SyncCheckpointEntity(
 data class DeletedRecordsEntity(
     val tableName: String,      // see SyncTables
     val bookId: String,
-    val idx: Int = -1,         // if tableName=bookmark or highlight
+    val idx: Int = -1,          // if tableName=bookmark or highlight
     val sha256: String? = null, // if tableName=book_data, checksum of the file
     val filesize: Long = 0L,    // if tableName=book_data, size of the file
     val deletedAt : Long,       // timestamp of deletion
@@ -51,6 +51,7 @@ object SyncTables {
     const val BOOK_DATA = "book_data"
     const val BOOKMARK = "bookmark"
     const val HIGHLIGHT = "highlight"
+    const val NOTE = "note"
 
-    val ALL = arrayOf(BOOK_DATA, BOOKMARK, HIGHLIGHT)
+    val ALL = arrayOf(BOOK_DATA, BOOKMARK, HIGHLIGHT, NOTE)
 }

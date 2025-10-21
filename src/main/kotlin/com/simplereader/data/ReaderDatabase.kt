@@ -8,6 +8,8 @@ import com.simplereader.bookmark.BookmarkDao
 import com.simplereader.bookmark.BookmarkEntity
 import com.simplereader.highlight.HighlightDao
 import com.simplereader.highlight.HighlightEntity
+import com.simplereader.note.NoteDao
+import com.simplereader.note.NoteEntity
 import com.simplereader.settings.SettingsDao
 import com.simplereader.settings.SettingsEntity
 import com.simplereader.sync.DeletedRecordsEntity
@@ -20,15 +22,17 @@ import com.simplereader.sync.SyncDao
         BookDataEntity::class,
         BookmarkEntity::class,
         HighlightEntity::class,
+        NoteEntity::class,
         SettingsEntity::class,
         SyncFileIdMapEntity::class,
         SyncCheckpointEntity::class,
         DeletedRecordsEntity::class
        ],
-    version = 2,
+    version = 3,
     exportSchema = true,
     autoMigrations = [
-        AutoMigration(from = 1, to = 2)
+        AutoMigration(from = 1, to = 2),
+        AutoMigration(from = 2, to = 3)
     ]
 )
 abstract class ReaderDatabase : RoomDatabase() {
@@ -36,6 +40,7 @@ abstract class ReaderDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun highlightDao(): HighlightDao
+    abstract fun noteDao(): NoteDao
     abstract fun settingsDao(): SettingsDao
     abstract fun syncDao(): SyncDao
 

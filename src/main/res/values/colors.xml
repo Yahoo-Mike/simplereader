@@ -20,4 +20,7 @@
     <color name="highlight_green">#90EE90</color>
     <color name="highlight_blue">#ADD8E6</color>
     <color name="highlight_pink">#FFB6C1</color>
+
+    <color name="highlight_note">#BDBDBD</color>
+
 </resources>

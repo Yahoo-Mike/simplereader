@@ -1,12 +1,3 @@
-/*
- * Copyright 2021 Readium Foundation. All rights reserved.
- * Use of this source code is governed by the BSD-style license
- * available in the top-level LICENSE file of the project.
- *
- * modified by yahoo mike 18 May 2025
- *
- */
-
 package com.simplereader.reader
 
 import android.annotation.SuppressLint
@@ -15,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.RectF
 import android.os.Bundle
+import android.text.InputType
 import android.util.TypedValue
 import android.view.Menu
 import android.view.MenuItem
@@ -24,7 +16,9 @@ import android.widget.ImageView
 import android.widget.Toast
 import android.view.ActionMode
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commitNow
 import androidx.lifecycle.lifecycleScope
@@ -41,6 +35,10 @@ import com.simplereader.highlight.HighlightViewModel
 import com.simplereader.highlight.HighlightViewModelFactory
 import com.simplereader.model.BookData
 import com.simplereader.model.EpubData
+import com.simplereader.note.Note
+import com.simplereader.note.NoteRepository
+import com.simplereader.note.NoteViewModel
+import com.simplereader.note.NoteViewModelFactory
 import com.simplereader.settings.Settings
 import com.simplereader.toc.TocAdapter
 import com.simplereader.ui.font.ANDADA
@@ -64,6 +62,11 @@ class EpubReaderFragment :  ReaderFragment() {
     private lateinit var highlightRepository: HighlightRepository
     private val highlightViewModel: HighlightViewModel by activityViewModels() {
         HighlightViewModelFactory(highlightRepository)
+    }
+
+    private lateinit var noteRepository: NoteRepository
+    private val noteViewModel: NoteViewModel by activityViewModels() {
+        NoteViewModelFactory(noteRepository)
     }
 
     companion object {
@@ -126,6 +129,12 @@ class EpubReaderFragment :  ReaderFragment() {
             ReaderDatabase.Companion.getInstance(requireActivity()).highlightDao()
         highlightRepository = HighlightRepository(daoHighlight)
         highlightViewModel.touch()  // instantiate the highlightViewModel
+
+        // create the note repository (before accessing noteViewModel)
+        val daoNote =
+            ReaderDatabase.Companion.getInstance(requireActivity()).noteDao()
+        noteRepository = NoteRepository(daoNote)
+        noteViewModel.touch()  // instantiate the noteViewModel
 
         // IMPORTANT: Set the `fragmentFactory` before calling `super`
         super.onCreate(savedInstanceState)
@@ -328,6 +337,14 @@ class EpubReaderFragment :  ReaderFragment() {
             }
         }
         highlightViewModel.loadHighlightsFromDb(initData.bookId())
+
+        // observe any notes for changes & then load them from db
+        noteViewModel.notes.observe(viewLifecycleOwner) { notesList ->
+            if (notesList != null) {
+                applyNotesToPage(notesList)
+            }
+        }
+        noteViewModel.loadNotesFromDb(initData.bookId())
     }
 
     fun showSelectionBubble(selection: Selection) {
@@ -369,6 +386,15 @@ class EpubReaderFragment :  ReaderFragment() {
         bubble.findViewById<TextView>(R.id.btn_define).setOnClickListener {
             defineText(selection.locator.text.highlight)
             removeSelectionBubble()
+        }
+
+        // Note button (on highlight bubble)
+        bubble.findViewById<TextView>(R.id.btn_note).setOnClickListener {
+            enterNote(selection) { cancelSelected ->
+                if (!cancelSelected)
+                    removeSelectionBubble()
+                // else user selected Cancel, so don't remove highlight or bubble
+            }
         }
 
         // Copy button (on highlight bubble)
@@ -459,6 +485,30 @@ class EpubReaderFragment :  ReaderFragment() {
         }
     }
 
+    private fun applyNotesToPage(notes: List<Note>) {
+        val epubNavigator = childFragmentManager
+            .findFragmentByTag(navigatorTag) as? DecorableNavigator
+
+        epubNavigator?.let { navigator ->
+            val decorations : List<Decoration> = notes.mapNotNull { note ->
+                note.locator?.let { selection ->
+                    Decoration(
+                        id = note.id.toString(),
+                        locator = selection,
+                        style = Decoration.Style.Highlight(
+                            tint = note.getHexColor(),
+                            isActive = false
+                        )
+                    )
+                } // else null is returned, and the entry is filtered out
+            }
+
+            lifecycleScope.launch {
+                navigator.applyDecorations(decorations, "notes")
+            }
+        }
+    }
+
     fun copyTextToClipboard(text: String?) {
         if (text == null) return    // nothing to do
 
@@ -474,5 +524,37 @@ class EpubReaderFragment :  ReaderFragment() {
 
         val dictionaryBottomSheet = DictionaryBottomSheet.newInstance(text)
         dictionaryBottomSheet.show(parentFragmentManager, "dictionaryBottomSheet")
+    }
+
+    // selection: text that was highlighted by user
+    // onCancel: what to do if user presses Cancel (true) or enters a note (false)
+    private fun enterNote(selection: Selection, onCancel: (Boolean) -> Unit) {
+        val bookId = readerViewModel.bookData.value?.bookId() ?: return
+
+        val editText = EditText(requireContext()).apply {
+            hint = "Enter your note"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 3
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Add Note")
+            .setView(editText)
+            .setPositiveButton("Save") { _, _ ->
+                val noteContent = editText.text.toString()
+                if (noteContent.isNotBlank()) {
+                    noteViewModel.saveNote(bookId, selection.locator, noteContent)
+                    onCancel(false)
+                } else {
+                    onCancel(true)  // treat an empty note as cancel
+                }
+            }
+            .setNegativeButton("Cancel") { _, _ ->
+                onCancel(true) // user pressed Cancel
+            }
+            .setOnCancelListener {
+                onCancel(true)
+            }
+            .show()
     }
 }

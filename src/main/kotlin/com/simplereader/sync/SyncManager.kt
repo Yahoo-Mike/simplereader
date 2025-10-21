@@ -25,6 +25,7 @@ import com.simplereader.data.ReaderDatabase
 import com.simplereader.highlight.Highlight
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_EPUB
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_PDF
+import com.simplereader.note.Note
 import com.simplereader.util.sha256Hex
 
 import kotlinx.coroutines.Dispatchers
@@ -261,6 +262,15 @@ class SyncManager private constructor (ctx:Context) {
                 SyncTables.HIGHLIGHT,
                 highlight.bookId,
                 highlight.id,
+                deletedAt=System.currentTimeMillis()) )
+    }
+    suspend fun flagNoteDeleted(note: Note) {
+        val db = ReaderDatabase.getInstance(appContext)
+        db.syncDao().addDeletedRecord(
+            DeletedRecordsEntity(
+                SyncTables.NOTE,
+                note.bookId,
+                note.id,
                 deletedAt=System.currentTimeMillis()) )
     }
 
