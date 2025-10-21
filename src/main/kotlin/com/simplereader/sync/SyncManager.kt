@@ -6,7 +6,6 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.room.InvalidationTracker
-import com.simplereader.bookmark.Bookmark
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.flow.callbackFlow
@@ -19,15 +18,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.FlowPreview
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
-
-import com.simplereader.util.MiscUtil
-import com.simplereader.data.ReaderDatabase
-import com.simplereader.highlight.Highlight
-import com.simplereader.model.BookData.Companion.MEDIA_TYPE_EPUB
-import com.simplereader.model.BookData.Companion.MEDIA_TYPE_PDF
-import com.simplereader.note.Note
-import com.simplereader.util.sha256Hex
-
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -39,6 +29,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.TimeUnit
+
+import com.simplereader.util.MiscUtil
+import com.simplereader.data.ReaderDatabase
+import com.simplereader.bookmark.Bookmark
+import com.simplereader.highlight.Highlight
+import com.simplereader.note.Note
+import com.simplereader.model.BookData.Companion.MEDIA_TYPE_EPUB
+import com.simplereader.model.BookData.Companion.MEDIA_TYPE_PDF
+import com.simplereader.util.sha256Hex
 
 class SyncManager private constructor (ctx:Context) {
     private val appContext = ctx.applicationContext
@@ -145,7 +144,7 @@ class SyncManager private constructor (ctx:Context) {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////
-    // observe the local Room tables book_data/bookmark/highlight for any edits.
+    // observe the local Room tables book_data/bookmark/highlight/note for any edits.
     // When there is an edit, it "debounces" (wait 1.5secs) and then queues on WorkManager
     // "sync now" job, which pushes the changes to the simplereaderd server
     // note: if syncing is disabled, the observer is cancelled & so stops listening.
@@ -255,6 +254,7 @@ class SyncManager private constructor (ctx:Context) {
                     bookmark.id,
                     deletedAt=System.currentTimeMillis()) )
     }
+
     suspend fun flagHighlightDeleted(highlight: Highlight) {
         val db = ReaderDatabase.getInstance(appContext)
         db.syncDao().addDeletedRecord(
@@ -264,6 +264,7 @@ class SyncManager private constructor (ctx:Context) {
                 highlight.id,
                 deletedAt=System.currentTimeMillis()) )
     }
+
     suspend fun flagNoteDeleted(note: Note) {
         val db = ReaderDatabase.getInstance(appContext)
         db.syncDao().addDeletedRecord(
@@ -304,7 +305,7 @@ class SyncManager private constructor (ctx:Context) {
             put("table", table)
             put("fileId", fileId)
             if (id != -1)
-                put("id", id)       // we only want one record from bookmark/highlight
+                put("id", id)       // we only want one record from bookmark/highlight/note
         }.toString()
 
         val req = Request.Builder()
@@ -527,9 +528,9 @@ class SyncManager private constructor (ctx:Context) {
     //   On the server:
     //      if file_id is not found, delete is ignored.
     //      if server's timestamp is greater than rows.updatedAt, row is ignored
-    //      if "tablename" is book_data, then server also softdeletes bookmarks and highlights for this fileId
+    //      if "tablename" is book_data, then server also softdeletes bookmarks, notes and highlights for this fileId
     //                                   server ignores tag "id" for book_data
-    //      if "tablename" is highlight or bookmark, then server expects tag "id" to be present
+    //      if "tablename" is highlight, note or bookmark, then server expects tag "id" to be present
     //
     // SERVER RESPONSE: { "ok": true, "deletedAt": 1712345679000 } // with server’s authoritative timestamp
     //                  { "ok": false, "error": "conflict", "serverUpdatedAt": 1712345685000 }

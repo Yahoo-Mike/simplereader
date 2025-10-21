@@ -18,7 +18,7 @@ data class ClientRecord(
     val updatedAt: Long?
 )
 
-// highlights and bookmarks
+// highlights, notes and bookmarks
 data class MarkerKey(val fileId: String, val id: Int)
 
 data class ServerMarker(

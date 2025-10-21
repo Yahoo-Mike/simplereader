@@ -7,8 +7,9 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.simplereader.book.BookDataEntity
 import com.simplereader.bookmark.BookmarkEntity
-import com.simplereader.data.ReaderDatabase
 import com.simplereader.highlight.HighlightEntity
+import com.simplereader.note.NoteEntity
+import com.simplereader.data.ReaderDatabase
 import com.simplereader.util.FileUtil
 import com.simplereader.util.MiscUtil
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +35,7 @@ data class SyncTimes(
 }
 
 //
-// worker that synchronises the book_data, highlight and bookmark tables with the server
+// worker that synchronises the book_data, highlight, note and bookmark tables with the server
 //
 class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(appCtx, params) {
     companion object {
@@ -75,6 +76,10 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         if (SyncTables.HIGHLIGHT in changed) {
             // sync highlight
             syncHighlightData()
+        }
+        if (SyncTables.NOTE in changed) {
+            // sync note
+            syncNoteData()
         }
 
         Log.i(TAG, "  END: sync for $changed")
@@ -350,12 +355,14 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                             // delete all data for this bookid
                             db.bookmarkDao().deleteAllForBook(bookId)
                             db.highlightDao().deleteAllForBook(bookId)
+                            db.noteDao().deleteAllForBook(bookId)
                             db.bookDao().deleteByBookId(bookId)
 
                             // delete all references to bookId in deleted_records
                             syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
                             syncDao.deleteDeletedRecord(SyncTables.BOOKMARK, bookId)
                             syncDao.deleteDeletedRecord(SyncTables.HIGHLIGHT, bookId)
+                            syncDao.deleteDeletedRecord(SyncTables.NOTE, bookId)
                         }
                     } else {
                         // we now have the fileId, so allow this delete to proceed
@@ -458,7 +465,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             return false
         }
 
-        // download the book from the server, update all book_data/bookmarks/highlights from server
+        // download the book from the server, update all book_data/bookmarks/notes/highlights from server
         val rc1 = SyncManager.getInstance(appContext).getBook(fileId)
         if (!rc1.ok)
             return false
@@ -536,6 +543,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // delete it locally
             db.bookmarkDao().deleteAllForBook(bookId)
             db.highlightDao().deleteAllForBook(bookId)
+            db.noteDao().deleteAllForBook(bookId)
             db.bookDao().getBookById(bookId)?.deleteFromDisk()      // physically delete the book
             bookDao.deleteByBookId(bookId)
 
@@ -543,8 +551,9 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // delete all references to bookId in deleted_records
             syncDao.deleteDeletedRecord(SyncTables.BOOKMARK, bookId)
             syncDao.deleteDeletedRecord(SyncTables.HIGHLIGHT, bookId)
+            syncDao.deleteDeletedRecord(SyncTables.NOTE, bookId)
         } else {
-            // download the book from the server, update all book_data/bookmarks/highlights from server
+            // download the book from the server, update all book_data/notes/bookmarks/highlights from server
             //  note: this is now just an SU update
             val ok = book0010(fileId, t)
             if (!ok)
@@ -656,6 +665,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // delete all the bookmarks/highlights for this book too
             db.bookmarkDao().deleteAllForBook(bookId)
             db.highlightDao().deleteAllForBook(bookId)
+            db.noteDao().deleteAllForBook(bookId)
             db.bookDao().getBookById(bookId)?.deleteFromDisk()      // physically delete the book
             bookDao.deleteByBookId(bookId)
 
@@ -685,7 +695,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         // Then we decide if we delete it, in which case we delete it on the client and "soft" delete on the server
         //
         // The reason we copy this to server (even if we might delete it straight away) is that the
-        // server "soft" deletes. So if the user ever reloads this book, then the progress, bookmarks
+        // server "soft" deletes. So if the user ever reloads this book, then the progress, bookmarks, notes,
         // and highlights will magically reappear from the server.
         //
         val ok = book1000(fileId, t); // send it to the server
@@ -702,7 +712,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         if (t.clientDelete!! >= t.clientUpdate!!) {
 
             // delete it on the server (we just added it)
-            // note: when deleting a book, the server soft deletes the book and all highlights and bookmarks too
+            // note: when deleting a book, the server soft deletes the book and all highlights, notes and bookmarks too
             // note: no point checking the error code, because we just added it so it should all be ok
             // note: no point updating local timestamps, because we're about to delete all the local records anyway
             val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA, fileId)
@@ -712,13 +722,14 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // delete it locally
             db.bookmarkDao().deleteAllForBook(bookId)
             db.highlightDao().deleteAllForBook(bookId)
+            db.noteDao().deleteAllForBook(bookId)
             db.bookDao().getBookById(bookId)?.deleteFromDisk()      // physically delete the book
             bookDao.deleteByBookId(bookId)
 
             // delete all references to bookId in deleted_records
             syncDao.deleteDeletedRecord(SyncTables.BOOKMARK, bookId)
             syncDao.deleteDeletedRecord(SyncTables.HIGHLIGHT, bookId)
-
+            syncDao.deleteDeletedRecord(SyncTables.NOTE, bookId)
         }
 
         syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
@@ -771,6 +782,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 // delete it locally
                 db.bookmarkDao().deleteAllForBook(bookId)
                 db.highlightDao().deleteAllForBook(bookId)
+                db.noteDao().deleteAllForBook(bookId)
                 db.bookDao().deleteByBookId(bookId)
             }
 
@@ -811,6 +823,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // delete it locally
             db.bookmarkDao().deleteAllForBook(bookId)
             db.highlightDao().deleteAllForBook(bookId)
+            db.noteDao().deleteAllForBook(bookId)
             db.bookDao().deleteByBookId(bookId)
         } else {
             // client says "update", so undelete on server
@@ -830,8 +843,8 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     }
 
     //********************************************************************************
-    // BOOKMARKS & HIGHLIGHTS - much simpler than books
-    // bookmarks & highlights share the same update/delete pattern.
+    // BOOKMARKS, NOTES & HIGHLIGHTS - much simpler than books
+    // bookmarks, notes & highlights share the same update/delete pattern.
     // There are only four rules: update/delete server/client
     //********************************************************************************
 
@@ -857,12 +870,21 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         ::deleteServerHighlight,
         ::deleteClientHighlight
     )
+    private val noteMarkers = Marker(
+        "note",
+        ::updateServerNote,
+        ::updateClientNote,
+        ::deleteServerNote,
+        ::deleteClientNote
+    )
 
-    enum class MarkerType { BOOKMARK, HIGHLIGHT }
-    private fun markerTable(type : MarkerType) : String {
-        return if (type== MarkerType.BOOKMARK) SyncTables.BOOKMARK
-            else SyncTables.HIGHLIGHT
+    enum class MarkerType { BOOKMARK, HIGHLIGHT, NOTE }
+    private fun markerTable(type: MarkerType): String = when (type) {
+        MarkerType.BOOKMARK  -> SyncTables.BOOKMARK
+        MarkerType.HIGHLIGHT -> SyncTables.HIGHLIGHT
+        MarkerType.NOTE      -> SyncTables.NOTE
     }
+
     data class MarkerRule(
         val name: String,
         val mask: Int,
@@ -898,6 +920,9 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     private var serverHighlights: List<ServerMarker> = emptyList()
     private var deleteHighlights: List<DeleteMarker> = emptyList()
     private var clientHighlights: List<ClientMarker> = emptyList()
+    private var serverNotes: List<ServerMarker>  = emptyList()
+    private var deleteNotes: List<DeleteMarker>  = emptyList()
+    private var clientNotes: List<ClientMarker>  = emptyList()
 
     private suspend fun syncBookmarkData() {
 
@@ -1047,6 +1072,80 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
     }
 
+    private suspend fun syncNoteData() {
+
+        // clear the lists we'll be building
+        serverNotes = emptyList()
+        deleteNotes = emptyList()
+        clientNotes = emptyList()
+
+        // our map of timestamps, which we'll later compare
+        val timestamps: MutableMap<MarkerKey, SyncTimes> = mutableMapOf()
+
+        //
+        // STEP ONE: build list of all timestamps
+        //
+        // get timestamps for all books known to server
+        val result1 = getAllServerMarkers(MarkerType.NOTE)
+        var ok = result1.ok;
+        serverNotes = result1.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get notes from server")
+            return
+        }
+        for (record in serverNotes) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                serverUpdate = record.updatedAt
+                serverDelete = record.deletedAt
+            }
+        }
+
+        // get timestamps for all notes deleted locally
+        val result2 = getLocalDeleteMarkers(MarkerType.NOTE)
+        ok = result2.ok;
+        deleteNotes = result2.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get local deleted notes")
+            return
+        }
+        for (record in deleteNotes) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                clientDelete = record.deletedAt
+            }
+        }
+
+        // get timestamps for all local notes
+        val result3 = getClientMarkers(MarkerType.NOTE)
+        ok = result3.ok;
+        clientNotes = result3.records
+        if (!ok) {
+            Log.w(TAG, "sync failed: could not get local notes")
+            return
+        }
+        for (record in clientNotes) {
+            //add to timestamps
+            timestamps.getOrPut(record.key) { SyncTimes() }.apply {
+                clientUpdate = record.updatedAt
+            }
+        }
+
+        //
+        // STEP TWO: work out what action to take for each row in timestamps
+        //
+        for ((key, tm) in timestamps) {
+            val mask = tm.toMask()
+            val rule = markerRules.firstOrNull { it.mask == mask }
+            if (rule != null) {
+                rule.action(MarkerType.NOTE, key.fileId, key.id.toInt(), tm)
+            } else {
+                Log.w(TAG, "syncNoteData: unexpected error")
+            }
+        }
+
+    }
+
     // deletes this marker from the "deleted_records" table
     private suspend fun deleteDeletedMarker(marker: MarkerType,fileId: String, id: Int) : Boolean {
         val syncDao = ReaderDatabase.getInstance(appContext).syncDao()
@@ -1068,10 +1167,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     // SU : new marker on the server, copy it to the client
     private suspend fun marker0010(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
         // update
-        return if (marker == MarkerType.BOOKMARK)
-            bookmarkMarkers.updateClientRow(fileId,id)
-        else
-            highlightMarkers.updateClientRow(fileId,id)
+        return when (marker) {
+            MarkerType.BOOKMARK -> bookmarkMarkers.updateClientRow(fileId,id)
+            MarkerType.HIGHLIGHT -> highlightMarkers.updateClientRow(fileId,id)
+            MarkerType.NOTE -> noteMarkers.updateClientRow(fileId,id)
+        }
     }
 
     // CD+SU:
@@ -1081,15 +1181,17 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 return false
 
         val ok = if (t.serverUpdate!! >= t.clientDelete!!) { // SU wins
-                    if (marker == MarkerType.BOOKMARK)
-                        bookmarkMarkers.updateClientRow(fileId,id)
-                    else
-                        highlightMarkers.updateClientRow(fileId,id)
+                    when (marker) {
+                        MarkerType.BOOKMARK -> bookmarkMarkers.updateClientRow(fileId,id)
+                        MarkerType.HIGHLIGHT -> highlightMarkers.updateClientRow(fileId,id)
+                        MarkerType.NOTE -> noteMarkers.updateClientRow(fileId,id)
+                    }
                 } else { // CD wins
-                    if (marker == MarkerType.BOOKMARK)
-                        bookmarkMarkers.deleteServerRow(fileId,id)
-                    else
-                        highlightMarkers.deleteServerRow(fileId,id)
+                    when (marker) {
+                        MarkerType.BOOKMARK -> bookmarkMarkers.deleteServerRow(fileId,id)
+                        MarkerType.HIGHLIGHT -> highlightMarkers.deleteServerRow(fileId,id)
+                        MarkerType.NOTE -> noteMarkers.deleteServerRow(fileId,id)
+                    }
                 }
 
         if (ok)
@@ -1100,10 +1202,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
     // CU: new marker on the client, copy it to the server
     private suspend fun marker1000(marker: MarkerType, fileId: String, id: Int, t: SyncTimes?): Boolean {
-        return if (marker == MarkerType.BOOKMARK)
-            bookmarkMarkers.updateServerRow(fileId,id)
-        else
-            highlightMarkers.updateServerRow(fileId,id)
+        return when (marker) {
+            MarkerType.BOOKMARK -> bookmarkMarkers.updateServerRow(fileId,id)
+            MarkerType.HIGHLIGHT -> highlightMarkers.updateServerRow(fileId,id)
+            MarkerType.NOTE -> noteMarkers.updateServerRow(fileId,id)
+        }
     }
 
     // CU+SU
@@ -1117,15 +1220,17 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             return true     // nop, client and server in sync
 
         if (t.serverUpdate!! > t.clientUpdate!!) { // SU wins
-            if (marker == MarkerType.BOOKMARK)
-                bookmarkMarkers.updateClientRow(fileId,id)
-            else
-                highlightMarkers.updateClientRow(fileId,id)
+            when (marker) {
+                MarkerType.BOOKMARK -> bookmarkMarkers.updateClientRow(fileId,id)
+                MarkerType.HIGHLIGHT -> highlightMarkers.updateClientRow(fileId,id)
+                MarkerType.NOTE -> noteMarkers.updateClientRow(fileId,id)
+            }
         } else { // CU wins
-            if (marker == MarkerType.BOOKMARK)
-                bookmarkMarkers.updateServerRow(fileId,id)
-            else
-                highlightMarkers.updateServerRow(fileId,id)
+            when (marker) {
+                MarkerType.BOOKMARK -> bookmarkMarkers.updateServerRow(fileId,id)
+                MarkerType.HIGHLIGHT -> highlightMarkers.updateServerRow(fileId,id)
+                MarkerType.NOTE -> noteMarkers.updateServerRow(fileId,id)
+            }
         }
 
         return true
@@ -1138,15 +1243,17 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             return false
 
         if (t.serverDelete!! > t.clientUpdate!!) { // SD wins
-            if (marker == MarkerType.BOOKMARK)
-                bookmarkMarkers.deleteClientRow(fileId,id)
-            else
-                highlightMarkers.deleteClientRow(fileId,id)
+            when (marker) {
+                MarkerType.BOOKMARK -> bookmarkMarkers.deleteClientRow(fileId,id)
+                MarkerType.HIGHLIGHT -> highlightMarkers.deleteClientRow(fileId,id)
+                MarkerType.NOTE -> noteMarkers.deleteClientRow(fileId,id)
+            }
         } else { // CU wins
-            if (marker == MarkerType.BOOKMARK)
-                bookmarkMarkers.updateServerRow(fileId,id)
-            else
-                highlightMarkers.updateServerRow(fileId,id)
+            when (marker) {
+                MarkerType.BOOKMARK -> bookmarkMarkers.updateServerRow(fileId,id)
+                MarkerType.HIGHLIGHT -> highlightMarkers.updateServerRow(fileId,id)
+                MarkerType.NOTE -> noteMarkers.updateServerRow(fileId,id)
+            }
         }
 
         return true
@@ -1161,10 +1268,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
         var ok = true
         if (t.clientDelete!! >= t.clientUpdate!!) { // CD wins
-            ok = if (marker == MarkerType.BOOKMARK)
-                    bookmarkMarkers.deleteClientRow(fileId,id)
-                else
-                    highlightMarkers.deleteClientRow(fileId,id)
+            ok = when (marker) {
+                MarkerType.BOOKMARK -> bookmarkMarkers.deleteClientRow(fileId,id)
+                MarkerType.HIGHLIGHT -> highlightMarkers.deleteClientRow(fileId,id)
+                MarkerType.NOTE -> noteMarkers.deleteClientRow(fileId,id)
+            }
         } // else CU wins = nop
 
         if (ok)
@@ -1182,19 +1290,20 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         var ok = true
         if (t.clientDelete!! >= t.clientUpdate!!) { // client says "delete"
             if (t.serverUpdate!! >= t.clientDelete!!) {  // SU wins
-                ok = if (marker == MarkerType.BOOKMARK)
-                        bookmarkMarkers.updateClientRow(fileId,id)
-                    else
-                        highlightMarkers.updateClientRow(fileId,id)
+                ok = when (marker) {
+                    MarkerType.BOOKMARK -> bookmarkMarkers.updateClientRow(fileId,id)
+                    MarkerType.HIGHLIGHT -> highlightMarkers.updateClientRow(fileId,id)
+                    MarkerType.NOTE -> noteMarkers.updateClientRow(fileId,id)
+                }
             } else { // CD wins
-                ok = if (marker == MarkerType.BOOKMARK) {
-                        bookmarkMarkers.deleteClientRow(fileId, id)
-                        bookmarkMarkers.deleteServerRow(fileId, id)
-                    }
-                    else {
-                        highlightMarkers.deleteClientRow(fileId, id)
-                        highlightMarkers.deleteServerRow(fileId, id)
-                    }
+                ok = when (marker) {
+                    MarkerType.BOOKMARK  -> {   bookmarkMarkers.deleteClientRow(fileId,id)
+                                                bookmarkMarkers.deleteServerRow(fileId,id)  }
+                    MarkerType.HIGHLIGHT -> {   highlightMarkers.deleteClientRow(fileId,id)
+                                                highlightMarkers.deleteServerRow(fileId,id) }
+                    MarkerType.NOTE      -> {   noteMarkers.deleteClientRow(fileId,id)
+                                                noteMarkers.deleteServerRow(fileId,id) }
+                }
             }
         } else { // client says "update" - same as CU+SU
             ok = marker1010( marker, fileId, id, t )
@@ -1214,15 +1323,17 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
         var ok = true
         if ((t.clientUpdate!! > t.clientDelete!!) && (t.clientUpdate!! > t.serverDelete!!)) { // CU wins
-            ok = if (marker == MarkerType.BOOKMARK)
-                bookmarkMarkers.updateServerRow(fileId, id)
-            else
-                highlightMarkers.updateServerRow(fileId, id)
+            ok = when (marker) {
+                MarkerType.BOOKMARK -> bookmarkMarkers.updateServerRow(fileId,id)
+                MarkerType.HIGHLIGHT -> highlightMarkers.updateServerRow(fileId,id)
+                MarkerType.NOTE -> noteMarkers.updateServerRow(fileId,id)
+            }
         } else { // CD and/or SD wins, so delete from client
-            ok = if (marker == MarkerType.BOOKMARK)
-                bookmarkMarkers.deleteClientRow(fileId, id)
-            else
-                highlightMarkers.deleteClientRow(fileId, id)
+            ok = when (marker) {
+                MarkerType.BOOKMARK -> bookmarkMarkers.deleteClientRow(fileId, id)
+                MarkerType.HIGHLIGHT -> highlightMarkers.deleteClientRow(fileId, id)
+                MarkerType.NOTE -> noteMarkers.deleteClientRow(fileId, id)
+            }
         }
 
         if (ok)
@@ -1250,6 +1361,17 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             put("label", label)
             put("colour", colour)
             put("updatedAt", lastUpdated)            // UTC millis
+        }.toString()
+    }
+
+    private fun NoteEntity.toRowJson(fileId: String): String {
+        // need to post update("note",{fileId,id,locator,label,updatedAt})
+        return JSONObject().apply {
+            put("fileId", fileId)                    // use the given file_id, not bookId
+            put("id", id)
+            put("locator", locator)
+            put("content", content)
+            put("updatedAt", lastUpdated)
         }.toString()
     }
 
@@ -1372,6 +1494,65 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         return true
     }
 
+    // need to post update("note",{fileId,id,location,content,updatedAt})
+    private suspend fun updateServerNote(fileId: String, idx: Int) : Boolean {   // update server from client
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+        val note = db.noteDao().getNote(bookId,idx)
+        if (note == null)
+            return false    // can't get data to send to server
+
+        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.NOTE, note.toRowJson(fileId))
+        if (rc.ok)
+            db.noteDao().updateTimestamp(bookId,note.id,rc.updatedAt)   // adopt server's authoritative timestamp
+        return rc.ok
+    }
+
+    private suspend fun updateClientNote(fileId: String, idx: Int) : Boolean {   // update client from server
+
+        val rc = SyncManager.getInstance(appContext).postGet(SyncTables.NOTE, fileId,idx)
+        if (!rc.ok)
+            return false    // couldn't get data back from server
+
+        if (rc.rows.isEmpty())
+            return false    // row not found on server
+
+        if (rc.rows.size > 1)
+            Log.w(TAG, "more than one note found for [$fileId/$idx].  Using first one only.")
+
+        val row = rc.rows[0]
+
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+
+        val newNote = NoteEntity(bookId,idx,
+            row.getString("locator"),
+            row.getString("content"),
+            row.getLong("updatedAt") )
+        db.noteDao().insert(newNote)
+
+        return true
+    }
+
+    private suspend fun deleteServerNote(fileId: String, idx: Int) : Boolean {   // delete server's row (soft delete)
+        val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.NOTE, fileId,idx)
+        return rc.ok
+    }
+
+    private suspend fun deleteClientNote(fileId: String, idx: Int) : Boolean {   // delete row on client (locally)
+        val db = ReaderDatabase.getInstance(appContext)
+        val bookId = db.syncDao().getBookIdForFileId(fileId)
+        if (bookId.isNullOrEmpty())
+            return false
+        val row = db.noteDao().getNote(fileId,idx)
+        if (row != null)
+            db.noteDao().delete(row)
+        return true
+    }
 
     private data class ServerMarkerResult(
         val ok: Boolean,
@@ -1415,7 +1596,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             val db = ReaderDatabase.getInstance(appContext)
             val syncDao = db.syncDao()
 
-            // 1oad tombstones for bookmark/highlight, if there are none, we can gracefully leave
+            // 1oad tombstones for bookmark/note/highlight, if there are none, we can gracefully leave
             val tombstones = syncDao.getDeletedRecordByTable(markerTable(marker))
             if (tombstones.isNullOrEmpty())
                 return@withContext DeleteMarkerResult(true) // return with empty list
@@ -1439,7 +1620,6 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
             return@withContext DeleteMarkerResult(true, records)
         }
-
 
     private data class ClientMarkerResult(
         val ok: Boolean,
@@ -1469,6 +1649,11 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 val highlights = db.highlightDao().getHighlightsForBook(book.bookId)
                 for (hl in highlights)
                     records.add(ClientMarker(MarkerKey(fileId,hl.id), hl.lastUpdated))
+            }
+            if (marker == MarkerType.NOTE) {
+                val notes = db.noteDao().getNotesForBook(book.bookId)
+                for (nn in notes)
+                    records.add(ClientMarker(MarkerKey(fileId,nn.id), nn.lastUpdated))
             }
         }
 
