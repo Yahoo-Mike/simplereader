@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.divider.MaterialDividerItemDecoration
 import com.simplereader.AppContext
 import com.simplereader.R
 import com.simplereader.databinding.FragmentSidepanelListBinding
@@ -58,13 +59,20 @@ abstract class SidepanelListFragment<T: SidepanelListItem> : Fragment() {
         binding.sidepanelList.adapter = adapter
         binding.sidepanelList.layoutManager = LinearLayoutManager(requireContext())
 
+        // add dividers between the items in the recyclerview
+        val divider = MaterialDividerItemDecoration(requireContext(), RecyclerView.VERTICAL).apply {
+            dividerThickness = resources.getDimensionPixelSize(R.dimen.divider_thin)
+            isLastItemDecorated = false
+        }
+        binding.sidepanelList.addItemDecoration(divider)
+
         // initial prep for data underlying recyclerview and refreshing the recycler view etc
         processOnViewCreated()
 
         // watch for user pressing the "add" button
         binding.sidepanelAddButton.setOnClickListener { onAddClicked() }
 
-        // setup ability to swipe a bookmark to delete it
+        // setup ability to swipe an item to delete it
         val swipeCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean = false
 

@@ -1,3 +1,4 @@
 <resources>
     <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="divider_thin">1dp</dimen>
 </resources>

@@ -17,7 +17,8 @@
         android:textStyle="bold"
         android:padding="16dp"
         android:gravity="center"
-        android:background="#F0F0F0"
+        android:background="@color/primary_color"
+        android:textColor="@android:color/white"
         android:elevation="4dp" />
 
     <androidx.recyclerview.widget.RecyclerView
