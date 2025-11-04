@@ -30,6 +30,7 @@
     <string name="server_sync_fail">Sync failed</string>
 
     <string name="search_hint">Search In Book</string>
+    <string name="dictionary_hint">Enter word to define</string>
 
     <string name="details">Details</string>
     <string name="close">Close</string>

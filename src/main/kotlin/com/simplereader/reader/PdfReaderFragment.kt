@@ -1,11 +1,13 @@
 package com.simplereader.reader
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commitNow
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
 import com.simplereader.R
 import com.simplereader.data.ReaderDatabase
+import com.simplereader.dictionary.DictionaryBottomSheet
 
 import com.simplereader.model.BookData
 import com.simplereader.model.PdfData
@@ -96,8 +98,7 @@ class PdfReaderFragment :  ReaderFragment() {
             R.id.reader_touch_wrapper
         )
         wrapper.onLongPress = { _, _ ->
-            Toast.makeText(requireContext(), "long press", android.widget.Toast.LENGTH_SHORT).show()
-            // showDictionaryDialog()
+            showDictionaryDialog()
         }
 
         // load all the notes for this PDF from db
@@ -105,4 +106,23 @@ class PdfReaderFragment :  ReaderFragment() {
 
     }
 
+    // ask user for word to define and show dictionary definition
+    private fun showDictionaryDialog() {
+
+        val input = TextInputEditText(requireContext()).apply {
+            hint = getString(R.string.dictionary_hint)
+            maxLines = 1
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.define)
+            .setView(input)
+            .setPositiveButton(R.string.search) { _, _ ->
+                val word = input.text?.toString().orEmpty().trim()
+                DictionaryBottomSheet.newInstance(word)
+                    .show(parentFragmentManager, "dictionary_bottom_sheet")
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
 }
