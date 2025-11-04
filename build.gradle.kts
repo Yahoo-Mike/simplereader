@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.simplereader"
-version = "3.2.0"
+version = "3.3.0"
 
 android {
     namespace = "com.simplereader"
@@ -60,7 +60,7 @@ android {
 }
 
 dependencies {
-    val kotlinVersion = "2.2.20"
+    val kotlinVersion = "2.2.21"
 
     val activityVersion = "1.11.0"
     val appcompatVersion = "1.7.1"

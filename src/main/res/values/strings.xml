@@ -28,7 +28,7 @@
     <string name="server_sync_start">Sync started…</string>
     <string name="server_sync_ok">Sync complete</string>
     <string name="server_sync_fail">Sync failed</string>
-s
+
     <string name="search_hint">Search In Book</string>
 
     <string name="details">Details</string>

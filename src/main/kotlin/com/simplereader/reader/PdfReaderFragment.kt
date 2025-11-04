@@ -1,6 +1,7 @@
 package com.simplereader.reader
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commitNow
 import com.simplereader.R
@@ -88,6 +89,16 @@ class PdfReaderFragment :  ReaderFragment() {
 
         @Suppress("UNCHECKED_CAST")
         navigator = childFragmentManager.findFragmentByTag(tag) as? PdfiumNavigatorFragment
+
+        // find our subclassed FrameLayout and set the onLongPress() callback it exposes to
+        // start the dictionary search function for our PDF
+        val wrapper = requireView().findViewById<ReaderTouchFrameLayout>(
+            R.id.reader_touch_wrapper
+        )
+        wrapper.onLongPress = { _, _ ->
+            Toast.makeText(requireContext(), "long press", android.widget.Toast.LENGTH_SHORT).show()
+            // showDictionaryDialog()
+        }
 
         // load all the notes for this PDF from db
         noteViewModel.loadNotesFromDb(initData.bookId())
