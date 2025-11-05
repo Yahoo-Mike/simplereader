@@ -60,8 +60,8 @@ class SyncManager private constructor (ctx:Context) {
     companion object {
         private val TAG: String = MiscUtil::class.java.simpleName
 
-        const val TAG_SYNC = "SYNC_TAG"
-        const val WORK_SYNC_NOW = "SYNC_NOW"
+        const val TAG_SYNC = "SR_SYNC_TAG"
+        const val WORK_SYNC_NOW = "SR_SYNC_NOW"
 
         @Volatile private var INSTANCE: SyncManager? = null
 

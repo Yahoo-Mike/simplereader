@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/avd_sync_arrows">
+    <target
+        android:name="rotGroup"
+        android:animation="@animator/avd_sync_rotate"/>
+</animated-vector>

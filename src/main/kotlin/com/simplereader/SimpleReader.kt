@@ -4,36 +4,31 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.LiveData
 import com.simplereader.reader.ReaderActivity
 import com.simplereader.settings.SettingsBottomSheet
 import com.simplereader.sync.SyncManager
+import com.simplereader.sync.SyncStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-/**
- * kotlin version created by avez raj  on 13 Sep 2017
- * converted to kotlin by yahoo mike on  4 May 2025
- */
-
 //
-// SimpleReader: singleton class
+// SimpleReader: singleton class to display an EPUB or PDF using the Readium libraries
 //
 class SimpleReader private constructor(ctx:Context){
-    private val appContext: Context = ctx.applicationContext
-    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    init {
-        ioScope.launch {
-            // start the syncmanager working in the background (it will automatically kick off a syncNow)
-            SyncManager.getInstance(appContext).start()
-        }
-    }
+    // user can observe this flag to determine if SimpleReader is currently syncing with a server
+    //    SimpleReader.getInstance().isSyncing.observer(lifecycleOwner) { syncing ->
+    //       // do some UI updates, like an animated sync icon
+    //    }
+    val isSyncing : LiveData<Boolean> get() = SyncStatus.isSyncing
 
+    //
     // open a book, given the filepath
     fun openBook(filePath: String): SimpleReader? {
-        val ctx = requireNotNull(appContext) { "Call EReader.init(context) first" }
+        val ctx = requireNotNull(appContext) { "no app context" }
 
         val intentReaderActivity = getIntentFromUrl(filePath)
         ctx.startActivity(intentReaderActivity)
@@ -41,7 +36,6 @@ class SimpleReader private constructor(ctx:Context){
     }
 
     // displays a bottom sheet for entering the server settings
-    //  context:  UI context over which to display the settings
     //
     // user should call like this in a Fragment:
     //      SimpleReader.getInstance().serverSettings(parentFragmentManager)
@@ -50,6 +44,24 @@ class SimpleReader private constructor(ctx:Context){
     fun serverSettings(fragManager : FragmentManager) {
         val sheet = SettingsBottomSheet()
         sheet.show(fragManager, sheet.tag)
+    }
+
+    //
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    private val appContext: Context = ctx.applicationContext
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        // before starting syncmanager, start the SyncStatus singleton, so we can expose it immediately
+        // note: SyncStatus needs to run on the main thread
+        CoroutineScope(Dispatchers.Main).launch {
+            SyncStatus.start(appContext)
+        }
+        ioScope.launch {
+            // start the syncmanager working in the background (it will automatically kick off a syncNow)
+            SyncManager.getInstance(appContext).start()
+        }
     }
 
     private fun getIntentFromUrl(filePath: String): Intent {

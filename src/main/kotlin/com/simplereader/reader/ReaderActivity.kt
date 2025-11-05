@@ -71,6 +71,7 @@ import com.simplereader.search.SearchFragment
 import com.simplereader.search.SearchViewModel
 import com.simplereader.settings.SettingsBottomSheet
 import com.simplereader.settings.SettingsRepository
+import com.simplereader.sync.SyncStatus
 import com.simplereader.ui.sidepanel.SidepanelListFragment
 import kotlin.math.roundToInt
 
@@ -96,7 +97,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     private var mFilename: String? = null
 
     private var progressView: TextView? = null      // progress indicator
-    private var newProgressText: String? = null        // hold progress text (if menu not ready)
+    private var newProgressText: String? = null     // hold progress text (if menu not ready)
 
     // multitasking
     private val coroutineQueue: CoroutineQueue = CoroutineQueue()
@@ -167,6 +168,12 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
         this.savedInstanceState = savedInstanceState
         // note: fragment is not started until we know which type to start...
+
+        // observe whether we are currently syncing with a server or not
+        SyncStatus.start(applicationContext)
+        SyncStatus.isSyncing.observe(this) { syncing ->
+            updateSyncIcon(syncing)
+        }
 
         // check permissions
         // only need to ask for write access for sdk 28 & 29
@@ -375,6 +382,23 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         menu?.findItem(R.id.itemFonts)?.isVisible = showSettings
         menu?.findItem(R.id.itemHighlight)?.isVisible = showHighlights
         return super.onPrepareOptionsMenu(menu)
+    }
+
+    private fun updateSyncIcon(isSyncing: Boolean) {
+        val item = binding.toolbar.menu.findItem(R.id.itemSettings) ?: return
+
+        // if we are syncing, hijack the "settings" icon to display an animated icon
+        if (isSyncing) {
+            item.setIcon(R.drawable.avd_sync)
+            (item.icon as? android.graphics.drawable.Animatable)?.start()
+            item.contentDescription = getString(R.string.server_sync_start)
+            item.isEnabled = false
+        } else { // not syncing, it should be a
+            (item.icon as? android.graphics.drawable.Animatable)?.stop()
+            item.setIcon(R.drawable.ic_settings)
+            item.contentDescription = getString(R.string.menu_item_settings)
+            item.isEnabled = true
+        }
     }
 
     private fun onBookInitFailure() {

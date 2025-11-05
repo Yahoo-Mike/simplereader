@@ -16,6 +16,7 @@
         android:icon="@drawable/ic_search"
         android:title="@string/menu_item_search"
         app:showAsAction="ifRoom"
+        app:iconTint="@color/primary_color"
         tools:showAsAction="always" />
 
     <item
