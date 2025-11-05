@@ -15,6 +15,7 @@ import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
@@ -94,6 +95,9 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
     private var mFilename: String? = null
 
+    private var progressView: TextView? = null      // progress indicator
+    private var newProgressText: String? = null        // hold progress text (if menu not ready)
+
     // multitasking
     private val coroutineQueue: CoroutineQueue = CoroutineQueue()
 
@@ -161,11 +165,6 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         }
         onBackPressedDispatcher.addCallback(this, backCallback)
 
-        // watch for user pressing the progress indicator (which allows them to jump to page#)
-        binding.progressIndicator?.setOnClickListener {
-            showGotoDialog()
-        }
-
         this.savedInstanceState = savedInstanceState
         // note: fragment is not started until we know which type to start...
 
@@ -202,6 +201,17 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.toolbar_icons, menu)
+
+        val progressItem = menu.findItem(R.id.itemProgress)
+        progressView = progressItem.actionView?.findViewById(R.id.progress_indicator)
+
+        // if we have new progress text, display it
+        newProgressText?.let { progressView?.text = it}
+        newProgressText = null
+
+        // let user jump to another location if they click on progress
+        progressView?.setOnClickListener { showGotoDialog() }
+
         return true
     }
 
@@ -561,13 +571,17 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
     // the text for "n% read" indication on the appbar
     fun updateProgressIndicator(progress: Double) {
-        val percent = (progress * 100.0).roundToInt()
-        val text = when (percent) {
-            in 0..99 -> "$percent% read"
-            100 -> "Finished"
-            else -> ""
+        val percent = (progress * 100.0).roundToInt().coerceIn(0,100)
+        val text = if (percent < 100) "$percent% read" else "Finished"
+
+        if (progressView == null) {
+            // menu is not yet inflated, so save it for use later
+            newProgressText = text
+            invalidateOptionsMenu() // encourage menu to inflate/refresh
+        } else {
+            // menu is up, so we'll change it
+            progressView!!.text = text
         }
-        binding.progressIndicator.text = text
     }
 
     // small dialog to allow user to enter page number (for PDFs) or % (for EPUBs)

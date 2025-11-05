@@ -5,6 +5,13 @@
     tools:context="com.simplereader.reader.ReaderActivity">
 
     <item
+        android:id="@+id/itemProgress"
+        android:title=""
+        app:showAsAction="always"
+        tools:showAsAction="always"
+        app:actionLayout="@layout/action_progress"/>
+
+    <item
         android:id="@+id/itemSearch"
         android:icon="@drawable/ic_search"
         android:title="@string/menu_item_search"

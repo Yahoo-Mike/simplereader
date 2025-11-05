@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.simplereader"
-version = "3.3.1"
+version = "3.3.2"
 
 android {
     namespace = "com.simplereader"

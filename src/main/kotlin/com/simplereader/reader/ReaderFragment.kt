@@ -79,6 +79,10 @@ abstract class ReaderFragment :  Fragment() {
                 // change the titlebar text
                 changeTitleBarText(navigator, data.publication.metadata.title)
 
+                // change the progress menu item
+                val progress = data.currentLocation?.locations?.totalProgression ?: 0.0
+                (activity as? ReaderActivity)?.updateProgressIndicator(progress)
+
                 // watch for user selecting a bookmark or search result, then jump to that location
                 readerViewModel.gotoLocator.observe(viewLifecycleOwner) { event ->
                     event.getContentIfNotHandled()?.let { locator ->
