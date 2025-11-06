@@ -347,6 +347,16 @@ class EpubReaderFragment :  ReaderFragment() {
         noteViewModel.loadNotesFromDb(initData.bookId())
     }
 
+    // return progress percentage of EPUB currently being displayed  [0..100]
+    override fun progress() : Int? {
+        val bookdata = readerViewModel.bookData.value ?: return null
+
+        var progress = bookdata.currentLocation?.locations?.totalProgression
+        if (progress != null)
+            progress = (progress * 100.0)
+        return progress?.let { progress.toInt().coerceIn(0, 100) }
+    }
+
     fun showSelectionBubble(selection: Selection) {
         // bubble container lives in the parent reader_activity
         val container = requireActivity().findViewById<FrameLayout>(R.id.selection_bubble_container)

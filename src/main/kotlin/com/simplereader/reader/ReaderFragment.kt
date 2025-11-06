@@ -12,6 +12,7 @@ package com.simplereader.reader
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -47,7 +48,14 @@ abstract class ReaderFragment :  Fragment() {
 
     protected val readerViewModel: ReaderViewModel by activityViewModels()
 
+    // abstract function to render the book on the screen
     protected abstract fun publish(data: BookData)
+
+    // abstract function to get current position in a document
+    // for EPUBs this is a percentage   [0..100]
+    // for PDFs  this ia a page number  [1..totalPages]
+    // return:  null means "I don't know"
+    abstract fun progress() : Int?
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreateView(

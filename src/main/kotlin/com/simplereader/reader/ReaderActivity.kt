@@ -73,6 +73,9 @@ import com.simplereader.settings.SettingsBottomSheet
 import com.simplereader.settings.SettingsRepository
 import com.simplereader.sync.SyncStatus
 import com.simplereader.ui.sidepanel.SidepanelListFragment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.readium.r2.shared.publication.services.positions
 import kotlin.math.roundToInt
 
 @OptIn(InternalReadiumApi::class)
@@ -217,7 +220,15 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
         newProgressText = null
 
         // let user jump to another location if they click on progress
-        progressView?.setOnClickListener { showGotoDialog() }
+        progressView?.setOnClickListener {
+
+            // ask fragment for our current position in the book
+            val frag = supportFragmentManager
+                .findFragmentById(R.id.navigator_container) as? ReaderFragment
+            val progress = frag?.progress()
+
+            showGotoDialog(progress)
+        }
 
         return true
     }
@@ -609,9 +620,13 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     }
 
     // small dialog to allow user to enter page number (for PDFs) or % (for EPUBs)
-    private fun showGotoDialog() {
-        val isPdf = (readerViewModel.bookData.value?.getMediaType() == MediaType.PDF)
-        val myHint = if (isPdf) "page#" else "percentage (0-100)"
+    fun showGotoDialog( currentProgress : Int? ) {
+
+        val bookdata = readerViewModel.bookData.value ?: return
+        val isPdf = (bookdata.getMediaType() == MediaType.PDF)
+
+        val myHint =
+            currentProgress?.let { currentProgress.toString() } ?: if (isPdf) "page#" else "percentage (0-100)"
 
         val input = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER

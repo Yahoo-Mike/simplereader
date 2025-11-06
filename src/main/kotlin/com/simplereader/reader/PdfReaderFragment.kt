@@ -3,6 +3,7 @@ package com.simplereader.reader
 import android.os.Bundle
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commitNow
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.simplereader.R
@@ -14,12 +15,15 @@ import com.simplereader.model.PdfData
 import com.simplereader.note.NoteRepository
 import com.simplereader.note.NoteViewModel
 import com.simplereader.note.NoteViewModelFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.readium.adapter.pdfium.navigator.PdfiumNavigatorFactory
 import org.readium.adapter.pdfium.navigator.PdfiumNavigatorFragment
 import org.readium.adapter.pdfium.navigator.PdfiumPreferences
 
 import org.readium.r2.navigator.preferences.Axis
 import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.publication.services.positions
 import kotlin.getValue
 
 class PdfReaderFragment :  ReaderFragment() {
@@ -28,6 +32,8 @@ class PdfReaderFragment :  ReaderFragment() {
     private val noteViewModel: NoteViewModel by activityViewModels() {
         NoteViewModelFactory(noteRepository)
     }
+
+    private var totalPages : Int? = null        // total number of pages in this PDF
 
     companion object {
         fun newInstance(): PdfReaderFragment {
@@ -52,8 +58,7 @@ class PdfReaderFragment :  ReaderFragment() {
         }
 
         // create the note repository (before accessing noteViewModel)
-        val daoNote =
-            ReaderDatabase.Companion.getInstance(requireActivity()).noteDao()
+        val daoNote = ReaderDatabase.Companion.getInstance(requireActivity()).noteDao()
         noteRepository = NoteRepository(daoNote)
         noteViewModel.touch()  // instantiate the noteViewModel
 
@@ -104,6 +109,21 @@ class PdfReaderFragment :  ReaderFragment() {
         // load all the notes for this PDF from db
         noteViewModel.loadNotesFromDb(initData.bookId())
 
+        // record how many pages we have
+        lifecycleScope.launch(Dispatchers.Default) {
+            totalPages = initData.publication.positions().size
+        }
+
+    }
+
+    // return page# of PDF currently being displayed [0..totalPages]
+    override fun progress() : Int? {
+        val bookdata = readerViewModel.bookData.value ?: return null
+        if (totalPages == null) return null
+
+        val position: Int? = bookdata.currentLocation?.locations?.position
+
+        return position?.let { position.coerceIn(1, totalPages) }
     }
 
     // ask user for word to define and show dictionary definition
