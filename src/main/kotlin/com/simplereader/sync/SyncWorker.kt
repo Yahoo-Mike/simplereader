@@ -248,8 +248,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                     // assume that this book is not on the server, so we add it
                     // POST /uploadBook {multipart} and response will include the new fileId
                     if (!book.sha256.isNullOrEmpty()) {
-                        fileId = SyncManager.getInstance(appContext)
-                            .postUploadBook(
+                        fileId = SyncAPI.postUploadBook(
                                 book.pubFile,
                                 book.sha256,
                                 book.filesize,
@@ -285,7 +284,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             val throttle = 100 // 100 records at a time
 
             while (true) {
-                val resp = SyncManager.getInstance(appContext).postGetSince(
+                val resp = SyncAPI.postGetSince(
                     SyncTables.BOOK_DATA, since, throttle
                 )
                     ?: return@withContext ServerRecordsResult(false, emptyList())
@@ -341,7 +340,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                     //
                     val book = db.bookDao().getBookById(bookId)
                     if (book?.isOnDisk() == true && book.sha256 != null) {
-                        fileId = SyncManager.getInstance(appContext).postUploadBook(
+                        fileId = SyncAPI.postUploadBook(
                             book.pubFile,
                             book.sha256,
                             book.filesize
@@ -394,7 +393,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         if (fileId.isNullOrEmpty()) {
             // ask the server to resolve fileId using stored checksum/size from tombstone
             if (!sha256.isNullOrBlank() && filesize > 0L) {
-                val rc = SyncManager.getInstance(appContext).postResolve(sha256, filesize)
+                val rc = SyncAPI.postResolve(sha256, filesize)
                 if (rc.ok)
                     fileId = rc.fileId
                 else
@@ -466,14 +465,14 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         }
 
         // download the book from the server, update all book_data/bookmarks/notes/highlights from server
-        val rc1 = SyncManager.getInstance(appContext).getBook(fileId)
+        val rc1 = SyncAPI.getBook(fileId)
         if (!rc1.ok)
             return false
         if (rc1.filename == null)
             return false    // we need to know the filename
 
         // get record info from the server
-        val rc2 = SyncManager.getInstance(appContext).postGet(SyncTables.BOOK_DATA, fileId)
+        val rc2 = SyncAPI.postGet(SyncTables.BOOK_DATA, fileId)
         if (!rc2.ok)
             return false    // something went wrong
 
@@ -536,7 +535,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
         if (t.clientDelete!! > t.serverUpdate!!) {
             // soft delete from the server
-            val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA, fileId)
+            val rc = SyncAPI.postDelete(SyncTables.BOOK_DATA, fileId)
             if (!rc.ok)
                 return false        // leave delete record to be dealt with later (maybe server is down?)
 
@@ -590,7 +589,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             put("updatedAt", bookData.lastUpdated)
         }.toString()
 
-        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.BOOK_DATA, row)
+        val rc = SyncAPI.postUpdate(SyncTables.BOOK_DATA, row)
         if (rc.ok) {
             bookDao.updateTimestamp(
                 bookId,
@@ -715,7 +714,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             // note: when deleting a book, the server soft deletes the book and all highlights, notes and bookmarks too
             // note: no point checking the error code, because we just added it so it should all be ok
             // note: no point updating local timestamps, because we're about to delete all the local records anyway
-            val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA, fileId)
+            val rc = SyncAPI.postDelete(SyncTables.BOOK_DATA, fileId)
             if (!rc.ok)
                 return false        // leave delete record to be dealt with later (maybe server is down?)
 
@@ -775,7 +774,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 // BUG you need to pass JSON {table,fileId,id}
 
                 val rc =
-                    SyncManager.getInstance(appContext).postDelete(SyncTables.BOOK_DATA, fileId)
+                    SyncAPI.postDelete(SyncTables.BOOK_DATA, fileId)
                 if (!rc.ok)
                     return false        // leave delete record to be dealt with later (maybe server is down?)
 
@@ -835,7 +834,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             /// make sure we have the book, otherwise try to download it
             val book = db.bookDao().getBookById(bookId)
             if (book?.isOnDisk() == false)
-                SyncManager.getInstance(appContext).getBook(fileId)
+                SyncAPI.getBook(fileId)
         }
 
         syncDao.deleteDeletedRecord(SyncTables.BOOK_DATA, bookId)
@@ -1384,7 +1383,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         if (bookmark == null)
             return false    // can't get data to send to server
 
-        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.BOOKMARK, bookmark.toRowJson(fileId))
+        val rc = SyncAPI.postUpdate(SyncTables.BOOKMARK, bookmark.toRowJson(fileId))
         if (rc.ok)
             db.bookmarkDao().updateTimestamp(bookId,bookmark.id,rc.updatedAt)   // adopt server's authoritative timestamp
         return rc.ok
@@ -1392,7 +1391,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
     private suspend fun updateClientBookmark(fileId: String, idx: Int) : Boolean {   // update client from server
 
-        val rc = SyncManager.getInstance(appContext).postGet(SyncTables.BOOKMARK, fileId,idx)
+        val rc = SyncAPI.postGet(SyncTables.BOOKMARK, fileId,idx)
         if (!rc.ok)
             return false    // couldn't get data back from server
 
@@ -1419,7 +1418,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     }
 
     private suspend fun deleteServerBookmark(fileId: String, idx: Int) : Boolean {   // delete server's row (soft delete)
-        val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.BOOKMARK, fileId,idx)
+        val rc = SyncAPI.postDelete(SyncTables.BOOKMARK, fileId,idx)
         return rc.ok
     }
 
@@ -1444,14 +1443,14 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         if (highlight == null)
             return false    // can't get data to send to server
 
-        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.HIGHLIGHT, highlight.toRowJson(fileId))
+        val rc = SyncAPI.postUpdate(SyncTables.HIGHLIGHT, highlight.toRowJson(fileId))
         if (rc.ok)
             db.highlightDao().updateTimestamp(bookId,highlight.id,rc.updatedAt)   // adopt server's authoritative timestamp
         return rc.ok
     }
 
     private suspend fun updateClientHighlight(fileId: String, idx: Int) : Boolean {   // update client from server
-        val rc = SyncManager.getInstance(appContext).postGet(SyncTables.HIGHLIGHT, fileId,idx)
+        val rc = SyncAPI.postGet(SyncTables.HIGHLIGHT, fileId,idx)
         if (!rc.ok)
             return false    // couldn't get data back from server
 
@@ -1479,7 +1478,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     }
 
     private suspend fun deleteServerHighlight(fileId: String, idx: Int) : Boolean {   // delete server's row (soft delete)
-        val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.HIGHLIGHT, fileId,idx)
+        val rc = SyncAPI.postDelete(SyncTables.HIGHLIGHT, fileId,idx)
         return rc.ok
     }
 
@@ -1504,7 +1503,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         if (note == null)
             return false    // can't get data to send to server
 
-        val rc = SyncManager.getInstance(appContext).postUpdate(SyncTables.NOTE, note.toRowJson(fileId))
+        val rc = SyncAPI.postUpdate(SyncTables.NOTE, note.toRowJson(fileId))
         if (rc.ok)
             db.noteDao().updateTimestamp(bookId,note.id,rc.updatedAt)   // adopt server's authoritative timestamp
         return rc.ok
@@ -1512,7 +1511,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
 
     private suspend fun updateClientNote(fileId: String, idx: Int) : Boolean {   // update client from server
 
-        val rc = SyncManager.getInstance(appContext).postGet(SyncTables.NOTE, fileId,idx)
+        val rc = SyncAPI.postGet(SyncTables.NOTE, fileId,idx)
         if (!rc.ok)
             return false    // couldn't get data back from server
 
@@ -1539,7 +1538,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     }
 
     private suspend fun deleteServerNote(fileId: String, idx: Int) : Boolean {   // delete server's row (soft delete)
-        val rc = SyncManager.getInstance(appContext).postDelete(SyncTables.NOTE, fileId,idx)
+        val rc = SyncAPI.postDelete(SyncTables.NOTE, fileId,idx)
         return rc.ok
     }
 
@@ -1566,7 +1565,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             val throttle = 100 // 100 records at a time
 
             while (true) {
-                val resp = SyncManager.getInstance(appContext).postGetSince(
+                val resp = SyncAPI.postGetSince(
                     markerTable(marker), since, throttle
                 )
                     ?: return@withContext ServerMarkerResult(false, emptyList())

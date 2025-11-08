@@ -15,6 +15,10 @@ import java.io.IOException
 
 import com.simplereader.util.MiscUtil
 import com.simplereader.util.getOrCreateSecretKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 // keeps a track of token sent back from the sync server
 // note: is a kotlin "object" not a class, which makes it a threadsafe singleton
@@ -73,6 +77,17 @@ object TokenManager {
         return token != null
     }
 
+    // synchronous blocking check whether we're connected or not
+    fun isConnectedBlocking(ctx: Context): Boolean = runBlocking {
+
+        withContext(Dispatchers.IO) {
+            withTimeout(4000) {  // 4s timeout, so we don't hang
+                isConnected(ctx)
+            }
+        }
+
+    }
+
     // disconnects current server session  (clears token)
     // note: does not server credentials - use updateServerConfig(ctx,null) to clear credentials
     suspend fun clearToken() {
@@ -93,7 +108,7 @@ object TokenManager {
 
         if (authToken != null) {
             if (tokenExpiry - System.currentTimeMillis() > leeway) {
-                if (SyncManager.getInstance(ctx).getRUOK(authToken!!))
+                if (SyncAPI.getRUOK(authToken!!))
                     return authToken
             }
         }
@@ -104,7 +119,7 @@ object TokenManager {
             // check again, because we might have been waiting for the mutex and someone else rereshed the token
             if (authToken != null) {
                 if (tokenExpiry - System.currentTimeMillis() > leeway) {
-                    if (SyncManager.getInstance(ctx).getRUOK(authToken!!))
+                    if (SyncAPI.getRUOK(authToken!!))
                         return authToken
                 }
             }
@@ -154,6 +169,7 @@ object TokenManager {
 
     /////////////////////////////////////////////////////////////////////////////////////
     // POST /login {username,password,version,device}
+    // note: this is deliberately not in SyncAPI (to obscure the login process)
     // login to server with user/pw
     //      version:    simplereader library version number (server checks for compatability)
     //      device:     name of device we are running on (optional)
