@@ -11,6 +11,7 @@ import com.simplereader.settings.SettingsBottomSheet
 import com.simplereader.sync.SyncAPI
 import com.simplereader.sync.SyncManager
 import com.simplereader.sync.SyncStatus
+import com.simplereader.sync.TokenManager
 import com.simplereader.util.MiscUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +45,13 @@ class SimpleReader private constructor(ctx:Context){
         val sheet = SettingsBottomSheet()
         sheet.show(fragManager, sheet.tag)
     }
+
+    // to check if the sync server is currently available
+    // note: this runs in the background, so you'll need to launch it
+    suspend fun isServerUp() : Boolean =
+        withContext(Dispatchers.IO) {
+            TokenManager.isConnectedBlocking(appContext)
+        }
 
     // user can observe this flag to determine if SimpleReader is currently syncing with a server
     //    SimpleReader.getInstance().isSyncing.observer(lifecycleOwner) { syncing ->
