@@ -57,7 +57,8 @@ class SimpleReader private constructor(ctx:Context){
     //    SimpleReader.getInstance().isSyncing.observer(lifecycleOwner) { syncing ->
     //       // do some UI updates, like an animated sync icon
     //    }
-    val isSyncing : LiveData<Boolean> get() = SyncStatus.isSyncing
+    val syncing : LiveData<Boolean> get() = SyncStatus.isSyncing
+    fun isSyncing() : Boolean = syncing.value ?: false
 
     // downloads a list of all the books on the SimpleReader server (being read by users or not)
     // PARAMETERS:
