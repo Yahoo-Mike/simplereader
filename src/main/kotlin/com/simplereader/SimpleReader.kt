@@ -119,6 +119,12 @@ class SimpleReader private constructor(ctx:Context){
 
     }
 
+    // start a full sync with the server
+    // assumes you have configured the sync server
+    fun syncNow() {
+        SyncManager.getInstance(appContext).syncNow()
+    }
+
     //
     ///////////////////////////////////////////////////////////////////////////
     //
