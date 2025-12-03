@@ -1,7 +1,7 @@
 plugins {
     id("com.android.library") version "8.12.3"
     id("org.jetbrains.kotlin.android") version "2.2.21"
-    id("androidx.room")  version "2.8.3"
+    id("androidx.room")  version "2.8.4"
     id("com.google.devtools.ksp") version "2.2.20-2.0.3"
 }
 
@@ -62,17 +62,17 @@ android {
 dependencies {
     val kotlinVersion = "2.2.21"
 
-    val activityVersion = "1.11.0"
+    val activityVersion = "1.12.1"
     val appcompatVersion = "1.7.1"
-    val composeUiVersion = "1.9.4"
+    val composeUiVersion = "1.10.0"
     val constraintLayoutVersion = "2.2.1"
     val coroutinesVersion = "1.10.2"
     val cryptoVersion = "1.1.0"
     val fragmentVersion = "1.8.9"
-    val lifecycleVersion = "2.9.4"
+    val lifecycleVersion = "2.10.0"
     val materialVersion = "1.13.0"
     val recyclerviewVersion = "1.4.0"
-    val roomVersion = "2.8.3"
+    val roomVersion = "2.8.4"
     val workVersion= "2.11.0"
 
     val gsonVersion = "2.13.2"
@@ -121,9 +121,6 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:${workVersion}")
-
-    // test environment
-    testImplementation("junit:junit:4.13.2")
 
     //json
     implementation("com.google.code.gson:gson:${gsonVersion}")
