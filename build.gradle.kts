@@ -30,12 +30,12 @@ android {
     sourceSets {
         getByName("main") {
             manifest.srcFile("src/main/AndroidManifest.xml")
-            java.srcDirs("src/main/java")
-            res.srcDirs("src/main/res")
-            assets.srcDirs("src/main/assets")
+            java.directories.add("src/main/java")
+            res.directories.add("src/main/res")
+            assets.directories.add("src/main/assets")
         }
         getByName("test") {
-            java.srcDirs("src/test/java")
+            java.directories.add("src/test/java")
         }
     }
 
