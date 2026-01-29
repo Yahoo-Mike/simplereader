@@ -88,6 +88,47 @@ class ReaderViewModel(
         }
     }
 
+    fun saveCurrentBookmark(bookId: String, locator: Locator?) {
+
+        // update local copy of bookmark location
+        bookData.value?.currentBookmark = locator
+
+        viewModelScope.launch {
+            // note:  locator/json could be null if there is no current bookmark
+            val json = locator?.toJSON()?.toString()
+            bookRepository.updateCurrentBookmark(bookId, json)
+        }
+    }
+
+    fun onCurrentBookmarkClick() {
+        // if we have no book data, leave
+        val data = bookData.value ?: return
+        // if we don't know where we are yet, leave
+        val currentLocation = data.currentLocation ?: return
+
+        val currentBookmark = data.currentBookmark
+
+        val newBookmark : Locator? =
+            if (currentBookmark == null) {
+                // set it using the currentLocation
+                currentLocation
+            } else {
+                // Simple first-pass equality check: identical JSON representation means "same location"
+                val jsonCurrentLocation = currentLocation.toJSON().toString()
+                val jsonCurrentBookmark = currentBookmark.toJSON().toString()
+
+                if (jsonCurrentBookmark == jsonCurrentLocation) {
+                    // user is toggling off the existing bookmark at this location
+                    null
+                } else {
+                    // user is moving the existing bookmark to current location, so just overwrite it
+                    currentLocation
+                }
+            }
+
+        saveCurrentBookmark(data.bookId(), newBookmark)
+    }
+
     fun setFont(font: FontFamily) {
         viewModelScope.launch {
             val current = _readerSettings.value ?: return@launch

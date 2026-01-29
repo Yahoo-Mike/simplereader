@@ -1,6 +1,6 @@
 package com.simplereader.book
 
-import android.content.Context
+import java.time.Instant
 
 //
 // stores & retrieves book info from database
@@ -17,5 +17,14 @@ class BookRepository(private val bookDao: BookDao) {
 
     suspend fun updateProgress(bookId: String, progressJson: String) {
         bookDao.updateProgress(bookId, progressJson)
+    }
+
+    suspend fun updateCurrentBookmark(bookId: String, progressJson: String?) {
+        bookDao.updateCurrentBookmark(bookId, progressJson)
+        updateBookTimestamp(bookId)
+    }
+
+    suspend fun updateBookTimestamp(bookId: String) {
+        bookDao.updateTimestamp(bookId, Instant.now().toEpochMilli())
     }
 }

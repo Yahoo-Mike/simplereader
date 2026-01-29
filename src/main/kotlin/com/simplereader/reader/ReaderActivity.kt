@@ -62,6 +62,7 @@ import org.readium.r2.shared.util.toUrl
 import java.io.File
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
+import com.simplereader.book.loadCurrentBookmarkFromDb
 import com.simplereader.book.loadProgressFromDb
 import com.simplereader.bookmark.BookmarkListFragment
 import com.simplereader.bookmark.BookmarkRepository
@@ -441,6 +442,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
         // if the book is already in the db, load the progress from the db record
         initData.loadProgressFromDb(readerViewModel)
+        initData.loadCurrentBookmarkFromDb(readerViewModel)
 
         return Try.Companion.success(initData)
     }
@@ -460,6 +462,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
 
         // if the book is already in the db, load the progress from the db record
         initData.loadProgressFromDb(readerViewModel)
+        initData.loadCurrentBookmarkFromDb(readerViewModel)
 
         return Try.Companion.success(initData)
     }
@@ -467,12 +470,10 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     // listener for a tap in the ReaderFragment
     // when user taps, toggle the appBar
     override fun onSingleTap() {
-
         val handled = dismissSidepanel()
         if (!handled)
             toggleAppBar()
     }
-
 
     private fun toggleAppBar() {
         if (binding.appBarLayout.isVisible)

@@ -17,9 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.NonCancellable
-import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.util.concurrent.TimeUnit
 
 import com.simplereader.R
 import com.simplereader.data.ReaderDatabase
@@ -27,6 +25,7 @@ import com.simplereader.databinding.ViewSettingsBinding
 import com.simplereader.reader.ReaderViewModel
 import com.simplereader.sync.SyncManager
 import com.simplereader.sync.SyncTickManager
+import com.simplereader.util.Http
 import com.simplereader.util.normaliseServerBase
 
 class SettingsBottomSheet : BottomSheetDialogFragment() {
@@ -220,9 +219,7 @@ class SettingsBottomSheet : BottomSheetDialogFragment() {
             }
         }
 
-        val client = OkHttpClient.Builder()
-            .callTimeout(5, TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
 
         val req = Request.Builder()
             .url(url)

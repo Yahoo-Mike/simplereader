@@ -79,5 +79,6 @@
     <string name="table_of_contents">Table of Contents</string>
     <string name="loading">Loading…</string>
     <string name="goto_page">go to page</string>
+    <string name="current_bookmark">bookmark</string>
 
 </resources>

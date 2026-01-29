@@ -501,6 +501,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 rc1.filename,
                 bookExt,
                 progress,
+                null,  // TODO: currentBookmark
                 rc1.sha256,
                 rc1.filesize,
                 updatedAt       // use the server's authoritative timestamp

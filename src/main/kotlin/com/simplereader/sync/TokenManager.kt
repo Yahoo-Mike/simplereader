@@ -6,16 +6,16 @@ import com.simplereader.data.ReaderDatabase
 import com.simplereader.settings.Settings.Companion.DEFAULT_FONT
 import com.simplereader.settings.Settings.Companion.DEFAULT_FONT_SIZE
 import com.simplereader.settings.SettingsEntity
+import com.simplereader.util.Http
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
-
 import com.simplereader.util.MiscUtil
 import com.simplereader.util.getOrCreateSecretKey
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -81,8 +81,16 @@ object TokenManager {
     fun isConnectedBlocking(ctx: Context): Boolean = runBlocking {
 
         withContext(Dispatchers.IO) {
-            withTimeout(4000) {  // 4s timeout, so we don't hang
-                isConnected(ctx)
+            try {
+                withTimeout(4000) {  // 4s timeout, so we don't hang
+                    isConnected(ctx)
+                }
+            } catch (e: TimeoutCancellationException) {
+                Log.w("Token.isConnected()","timeout")
+                false
+            } catch (e: Exception) {
+                Log.w("Token.isConnected()", "failed: ", e)
+                false
             }
         }
 
@@ -116,7 +124,7 @@ object TokenManager {
         // serialize refresh & double-check inside
         return mutex.withLock {
 
-            // check again, because we might have been waiting for the mutex and someone else rereshed the token
+            // check again, because we might have been waiting for the mutex and someone else refreshed the token
             if (authToken != null) {
                 if (tokenExpiry - System.currentTimeMillis() > leeway) {
                     if (SyncAPI.getRUOK(authToken!!))
@@ -182,9 +190,7 @@ object TokenManager {
         val url = "$base/login"
 
         // build the POST /login request
-        val client = OkHttpClient.Builder()
-            .callTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
         val payload = org.json.JSONObject().apply {
             put("username", config.user)            // use "username" if your server expects that
             put("password", config.decryptPassword(cryptoKey))

@@ -25,6 +25,9 @@ interface BookDao {
     @Query("UPDATE book_data SET currentProgress = :progress WHERE bookId = :bookId")
     suspend fun updateProgress(bookId: String, progress: String?)
 
+    @Query("UPDATE book_data SET currentBookmark = :bookmark WHERE bookId = :bookId")
+    suspend fun updateCurrentBookmark(bookId: String, bookmark: String?)
+
     @Query("UPDATE book_data SET lastUpdated = :updatedAt WHERE bookId = :bookId")
     suspend fun updateTimestamp(bookId: String, updatedAt: Long)
 }

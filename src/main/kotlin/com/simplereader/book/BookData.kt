@@ -21,7 +21,8 @@ import java.security.MessageDigest
 sealed class BookData(
     val publication: Publication,   // Readium-parsed book
     val pubName: String,            // physical location of book
-    var currentLocation: Locator? = null   // where user is up to in book
+    var currentLocation: Locator? = null,   // where user is up to in book
+    var currentBookmark: Locator? = null    // where user last put the "current bookmark"
 ) {
 
     companion object {

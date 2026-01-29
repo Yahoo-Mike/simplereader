@@ -16,6 +16,7 @@ fun BookData.toBookEntity(): BookDataEntity {
         pubFile = getFileName(),
         mediaType = getMediaType().let { gson.toJson(it) },
         currentProgress = currentLocation?.toJSON()?.toString(),
+        currentBookmark = currentBookmark?.toJSON()?.toString(),
         sha256 = getSHA256(),
         filesize = getFileSize(),
         lastUpdated = Instant.now().toEpochMilli()
@@ -36,4 +37,15 @@ suspend fun BookData.getProgress(viewModel: ReaderViewModel) : Locator? {
 // load progress from db into this BookData
 suspend fun BookData.loadProgressFromDb(viewModel: ReaderViewModel)  {
     this.currentLocation = this.getProgress(viewModel)
+}
+
+// get current bookmark from db (without updating this BookData)
+suspend fun BookData.getCurrentBookmark(viewModel: ReaderViewModel): Locator? {
+    val book = this.loadBook(viewModel)
+    return book?.currentBookmark?.let { Locator.fromJSON(JSONObject(it)) }
+}
+
+// load current bookmark from db into this BookData
+suspend fun BookData.loadCurrentBookmarkFromDb(viewModel: ReaderViewModel) {
+    this.currentBookmark = this.getCurrentBookmark(viewModel)
 }

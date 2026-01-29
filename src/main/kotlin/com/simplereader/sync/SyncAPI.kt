@@ -4,6 +4,7 @@ import android.util.Log
 import com.simplereader.AppContext
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_EPUB
 import com.simplereader.model.BookData.Companion.MEDIA_TYPE_PDF
+import com.simplereader.util.Http
 import com.simplereader.util.MiscUtil
 import com.simplereader.util.sha256Hex
 import kotlinx.coroutines.Dispatchers
@@ -53,9 +54,7 @@ object SyncAPI {
             return@withContext PostGetReturn(false)
         }
 
-        val client = OkHttpClient.Builder()
-            .callTimeout(10, TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
 
         val payload = JSONObject().apply {
             put("table", table)
@@ -141,9 +140,7 @@ object SyncAPI {
             return@withContext GetSinceResp(false, since)
         }
 
-        val client = OkHttpClient.Builder()
-            .callTimeout(10, TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
 
         val payload = JSONObject().apply {
             put("table", table)        // e.g., "book_data"
@@ -242,9 +239,7 @@ object SyncAPI {
             return@withContext PostUpdateReturn(false)
         }
 
-        val client = OkHttpClient.Builder()
-            .callTimeout(10, TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
 
         val payload = JSONObject().apply {
             put("table", tablename)
@@ -340,9 +335,7 @@ object SyncAPI {
             return@withContext PostDeleteReturn(false)
         }
 
-        val client = OkHttpClient.Builder()
-            .callTimeout(10, TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
 
         val payload = JSONObject().apply {
             put("table", tablename)
@@ -411,9 +404,7 @@ object SyncAPI {
             return@withContext false
         }
 
-        val client = OkHttpClient.Builder()
-            .callTimeout(10, TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
 
         val req = Request.Builder()
             .url("${server.trimEnd('/')}/ruOK/$token")
@@ -459,9 +450,7 @@ object SyncAPI {
             return@withContext PostResolveReturn(false)
         }
 
-        val client = OkHttpClient.Builder()
-            .callTimeout(10, TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
 
         val payload = JSONObject().apply {
             put(
@@ -587,9 +576,7 @@ object SyncAPI {
             .build()
 
         var fileId: String? = null
-        val client = OkHttpClient.Builder()
-            .callTimeout(60, TimeUnit.SECONDS)
-            .build()
+        val client = Http.largefile
         try {
             client.newCall(req).execute().use { resp ->
                 val body = resp.body?.string().orEmpty()
@@ -661,13 +648,7 @@ object SyncAPI {
             return@withContext GetBookReturn(false)
         }
 
-        val client = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.MINUTES)       // how long a single read() may block
-            .writeTimeout(5, TimeUnit.MINUTES)      // harmless for GETs
-            .callTimeout(0, TimeUnit.MILLISECONDS)  // 0 = no overall cap
-            .retryOnConnectionFailure(true)
-            .build()
+        val client = Http.largefile
 
         val req = Request.Builder()
             .url("${server.trimEnd('/')}/book/$fileId")
@@ -806,9 +787,7 @@ object SyncAPI {
             return@withContext GetCatalogueReturn(false)
         }
 
-        val client = OkHttpClient.Builder()
-            .callTimeout(10, TimeUnit.SECONDS)
-            .build()
+        val client = Http.api
 
         val req = Request.Builder()
             .url(server.trimEnd('/') + "/catalogue")
