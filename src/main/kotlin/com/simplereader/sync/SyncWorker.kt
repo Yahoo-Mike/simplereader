@@ -12,6 +12,7 @@ import com.simplereader.note.NoteEntity
 import com.simplereader.data.ReaderDatabase
 import com.simplereader.util.FileUtil
 import com.simplereader.util.MiscUtil
+import com.simplereader.util.getNullableString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -145,15 +146,6 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
     private var serverRecords: List<ServerRecord> = emptyList()
     private var deleteRecords: List<DeleteRecord> = emptyList()
     private var clientRecords: List<ClientRecord> = emptyList()
-
-    // convert to a Json row, like {"fileId":"XXX","progress":"YYY",updatedAt=1234}
-    fun BookDataEntity.toRowJson(fileId: String): String {
-        return JSONObject().apply {
-            put("fileId", fileId)                    // use the given file_id, not bookId
-            put("progress", currentProgress ?: "")   // null-safe
-            put("updatedAt", lastUpdated)            // UTC millis
-        }.toString()
-    }
 
     private suspend fun syncBookData() {
 
@@ -292,7 +284,8 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 for (row in resp.rows) {
                     records += ServerRecord (
                         row.getString("fileId"),
-                        row.optString("progress").takeUnless { it.isBlank() },
+                        row.getNullableString("progress"),
+                        row.getNullableString("bookmark"),
                         row.getLong("updatedAt"),
                         row.optLong("deletedAt", 0L).takeIf { it != 0L } )
                 }
@@ -485,7 +478,8 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 )
 
             val row = rowList[0] // process the first row only
-            val progress = row.getString("progress")
+            val progress = row.getNullableString("progress")
+            val bookmark = row.getNullableString("bookmark")
             val updatedAt = row.getLong("updatedAt")
 //            val deletedAt = row.optLong("deletedAt",0L)  // assume the caller checked if its deleted or not (and how it wants to proceed)
 
@@ -501,7 +495,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
                 rc1.filename,
                 bookExt,
                 progress,
-                null,  // TODO: currentBookmark
+                bookmark,
                 rc1.sha256,
                 rc1.filesize,
                 updatedAt       // use the server's authoritative timestamp
@@ -587,6 +581,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
         val row = JSONObject().apply {
             put("fileId", fileId)
             put("progress", bookData.currentProgress)
+            put("bookmark", bookData.currentBookmark)
             put("updatedAt", bookData.lastUpdated)
         }.toString()
 
@@ -633,6 +628,7 @@ class SyncWorker( appCtx: Context, params: WorkerParameters) : CoroutineWorker(a
             }
 
             bookDao.updateProgress(bookId, serverRow.progress)
+            bookDao.updateCurrentBookmark(bookId, serverRow.bookmark)
             bookDao.updateTimestamp(bookId, serverRow.updatedAt)
         } else {
             return book1000(fileId, t)  // same as a CU

@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.divider.MaterialDividerItemDecoration
 import com.simplereader.AppContext
 import com.simplereader.R
+import com.simplereader.bookmark.CurrentBookmarkListItem
 import com.simplereader.databinding.FragmentSidepanelListBinding
 import com.simplereader.reader.ReaderViewModel
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +80,20 @@ abstract class SidepanelListFragment<T: SidepanelListItem> : Fragment() {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.bindingAdapterPosition
                 adapter.markPendingDelete(position)
+            }
+
+            override fun getSwipeDirs(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ): Int { // swipe directions
+                val position = viewHolder.bindingAdapterPosition
+                val item = adapter.currentList.getOrNull(position)
+
+                return if (item is CurrentBookmarkListItem) {
+                    0 // do not allow user to swipe on the "current bookmark" item
+                } else {
+                    super.getSwipeDirs(recyclerView, viewHolder)
+                }
             }
         }
         ItemTouchHelper(swipeCallback).attachToRecyclerView(binding.sidepanelList)

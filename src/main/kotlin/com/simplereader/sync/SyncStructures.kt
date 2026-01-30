@@ -4,6 +4,7 @@ package com.simplereader.sync
 data class ServerRecord(
     val fileId: String,
     val progress: String?,
+    val bookmark: String?,  // current bookmark
     val updatedAt: Long,
     val deletedAt: Long?
 )

@@ -2,22 +2,22 @@ package com.simplereader.bookmark
 
 import com.simplereader.databinding.ItemSidepanelBinding
 import com.simplereader.ui.sidepanel.SidepanelAdapter
+import com.simplereader.ui.sidepanel.SidepanelListItem
 
 class BookmarkAdapter {
     companion object {
         fun create(
-            onBookmarkSelected: (BookmarkListItem) -> Unit,
-            onDeleteConfirmed: (BookmarkListItem) -> Unit,
-            onLongPress: (BookmarkListItem) -> Unit,
-            extraItemProcessing: (ItemSidepanelBinding, BookmarkListItem, Int) -> Unit
+            onBookmarkSelected: (SidepanelListItem) -> Unit,
+            onDeleteConfirmed: (SidepanelListItem) -> Unit,
+            onLongPress: (SidepanelListItem) -> Unit,
+            extraItemProcessing: (ItemSidepanelBinding, SidepanelListItem, Int) -> Unit
 
-        ): SidepanelAdapter<BookmarkListItem> {
+        ): SidepanelAdapter<SidepanelListItem> {
             return SidepanelAdapter(
                 onSidepanelItemSelected = onBookmarkSelected,
                 onDeleteConfirmed = onDeleteConfirmed,
                 onItemLongPressed = onLongPress,
                 extraItemProcessing = extraItemProcessing
-
             )
         }
     }

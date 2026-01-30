@@ -9,6 +9,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
 
@@ -95,4 +96,11 @@ fun sha256Hex(file: File): String {
         }
     }
     return md.digest().joinToString("") { "%02x".format(it) }
+}
+
+fun JSONObject.getNullableString(key: String): String? {
+    return this.opt(key)
+        ?.takeIf { it != JSONObject.NULL }
+        ?.toString()
+        ?.takeUnless { it.isBlank() }
 }
