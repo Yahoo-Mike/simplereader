@@ -61,9 +61,9 @@ android {
 dependencies {
     val kotlinVersion = "2.3.0"
 
-    val activityVersion = "1.12.2"
+    val activityVersion = "1.12.3"
     val appcompatVersion = "1.7.1"
-    val composeUiVersion = "1.10.1"
+    val composeUiVersion = "1.10.2"
     val constraintLayoutVersion = "2.2.1"
     val coroutinesVersion = "1.10.2"
     val cryptoVersion = "1.1.0"
@@ -72,7 +72,7 @@ dependencies {
     val materialVersion = "1.13.0"
     val recyclerviewVersion = "1.4.0"
     val roomVersion = "2.8.4"
-    val workVersion= "2.11.0"
+    val workVersion= "2.11.1"
 
     val gsonVersion = "2.13.2"
     val readiumVersion = "3.1.2"
