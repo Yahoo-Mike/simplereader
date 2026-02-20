@@ -1,9 +1,12 @@
 package com.simplereader
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.text.InputType
 import android.util.Log
+import android.widget.EditText
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.LiveData
 import com.simplereader.reader.ReaderActivity
@@ -127,6 +130,57 @@ class SimpleReader private constructor(ctx:Context){
         }
 
     }
+
+    fun deleteCatalogueBook(context: Context, fileId : String, onCompletion: (Boolean) -> Unit) {
+
+        val input = EditText(context).apply {
+            hint = "Type 1234"
+            inputType = InputType.TYPE_CLASS_TEXT
+        }
+
+        val dlg = AlertDialog.Builder(context)
+            .setTitle("Permanently delete?")
+            .setMessage(
+                "This will permanently delete this book and all its bookmarks, highlights and notes.\n\n" +
+                        "If that's what you want, type '1234' and tap Delete."
+            )
+            .setView(input)
+            .setNegativeButton("Cancel") { d, _ ->
+                d.dismiss()
+                onCompletion(false)
+            }
+            .setPositiveButton("Delete", null) // override to validate
+            .create()
+
+        dlg.setOnShowListener {
+            val deleteBtn = dlg.getButton(AlertDialog.BUTTON_POSITIVE)
+            deleteBtn.setOnClickListener {
+                if (input.text.toString() != "1234") {
+                    input.error = "Type 1234 to confirm"
+                    return@setOnClickListener
+                }
+
+                deleteBtn.isEnabled = false   // lock the UI (as user feedback)
+
+                ioScope.launch {
+                    val ok = try {
+                        val r = SyncAPI.deleteFromCatalogue(fileId)
+                        r.ok
+                    } catch (_: Exception) {
+                        false
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        dlg.dismiss()
+                        onCompletion(ok)
+                    }
+                }
+            }
+        }
+
+        dlg.show()
+    }
+
 
     // start a full sync with the server
     // assumes you have configured the sync server

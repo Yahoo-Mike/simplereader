@@ -9,6 +9,7 @@ import com.simplereader.util.MiscUtil
 import com.simplereader.util.sha256Hex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -774,7 +775,7 @@ object SyncAPI {
     )
     suspend fun getCatalogue(): GetCatalogueReturn = withContext(Dispatchers.IO) {
 
-        val appContext = AppContext.get() ?: return@withContext GetCatalogueReturn(false)
+        val appContext = AppContext.get() ?: return@withContext GetCatalogueReturn(false )
 
         val token = TokenManager.getToken(appContext)
         if (token.isNullOrEmpty()) {
@@ -791,10 +792,7 @@ object SyncAPI {
 
         val req = Request.Builder()
             .url(server.trimEnd('/') + "/catalogue")
-            .addHeader(
-                "Authorization",
-                "Bearer $token"
-            )   // change if your server expects a different header
+            .addHeader( "Authorization", "Bearer $token" )
             .get()
             .build()
 
@@ -834,4 +832,116 @@ object SyncAPI {
         GetCatalogueReturn(false)
     }
 
+    /////////////////////////////////////////////////////////////////////////////////////
+    // DELETE /catalogue/{fileId}
+    //   completely removes a book from the server's database (including bookmarks, highlights etc)
+    //
+    // note: if you call this and it succeeds, but you do not delete that data on the client,
+    //       then the next sync will copy what the client has back to the server.
+    //
+    // SERVER RESPONSE: { "ok": true }
+    //                  { "ok": false, "error": "an error", "reason": "a reason" }
+    //
+    // RETURNS: ok=true if successful
+    //          ok=false on error
+    data class DeleteFromCatalogueReturn(
+        val ok: Boolean,
+        val error: String? = null,
+        val reason: String? = null,
+        val httpCode: Int? = null
+    )
+    suspend fun deleteFromCatalogue(fileId: String): DeleteFromCatalogueReturn =
+        withContext(Dispatchers.IO) {
+
+            if (fileId.isBlank()) {
+                return@withContext DeleteFromCatalogueReturn(
+                    ok = false,
+                    error = "invalid fileId",
+                    reason = "fileId was empty or blank"
+                )
+            }
+
+            val appContext = AppContext.get()
+                ?: return@withContext DeleteFromCatalogueReturn(false, error = "no app context")
+
+            val token = TokenManager.getToken(appContext)
+            if (token.isNullOrEmpty()) {
+                Log.e(LOG_TAG, "deleteFromCatalogue failed: not connected to server")
+                return@withContext DeleteFromCatalogueReturn(false, error = "not connected to server")
+            }
+
+            val server = TokenManager.getServerName()
+            if (server.isNullOrEmpty()) {
+                Log.e(LOG_TAG, "deleteFromCatalogue failed: server not configured")
+                return@withContext DeleteFromCatalogueReturn(false, error = "server not configured")
+            }
+
+            val client = Http.api
+
+            // If fileIds might contain weird chars, encode as a path segment:
+            val base = server.trimEnd('/')
+            val url = (base.toHttpUrlOrNull()
+                ?: return@withContext DeleteFromCatalogueReturn(false, error = "invalid server URL"))
+                .newBuilder()
+                .addPathSegment("catalogue")
+                .addPathSegment(fileId)
+                .build()
+
+            val req = Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "Bearer $token")
+                .delete()
+                .build()
+
+            try {
+                client.newCall(req).execute().use { resp ->
+                    val httpCode = resp.code
+                    val text = resp.body?.string().orEmpty()
+                    val obj = runCatching { JSONObject(text) }.getOrNull()
+
+                    // Expected:
+                    // { "ok": true }
+                    // { "ok": false, "error": "...", "reason": "..." }
+                    if (obj != null && obj.has("ok") && obj.opt("ok") is Boolean) {
+                        val ok = obj.optBoolean("ok", false)
+                        if (ok) { // successful
+                            return@withContext DeleteFromCatalogueReturn(ok = true, httpCode = httpCode)
+                        }
+                        // failed, so return reasons to caller...
+                        return@withContext DeleteFromCatalogueReturn(
+                            ok = false,
+                            error = obj.optString("error", "unknown error"),
+                            reason = obj.optString("reason", "").takeIf { it.isNotBlank() },
+                            httpCode = httpCode
+                        )
+                    }
+
+                    // no JSON body (or no "ok" field)...so let's look at HTTP success/failure
+                    if (!resp.isSuccessful) { // failure
+                        return@withContext DeleteFromCatalogueReturn(
+                            ok = false,
+                            error = "http error",
+                            reason = "HTTP $httpCode: ${resp.message}".trim(),
+                            httpCode = httpCode
+                        )
+                    }
+
+                    // successful HTTP but unexpected or empty JSON
+                    return@withContext DeleteFromCatalogueReturn(
+                        ok = false,
+                        error = "invalid response",
+                        reason = "Expected JSON with boolean 'ok' but got: ${text.take(100)}", // show first 100 chars of what server sent
+                        httpCode = httpCode
+                    )
+                }
+
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "deleteFromCatalogue failed: ${e.message}", e)
+                return@withContext DeleteFromCatalogueReturn(
+                    ok = false,
+                    error = "exception",
+                    reason = e.message
+                )
+            }
+        }
 }

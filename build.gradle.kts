@@ -1,11 +1,11 @@
 plugins {
-    id("com.android.library") version "9.0.0"
+    id("com.android.library") version "9.0.1"
     id("androidx.room")  version "2.8.4"
     id("com.google.devtools.ksp") version "2.3.4"
 }
 
 group = "com.simplereader"
-version = "4.0.1"
+version = "4.1.0"
 
 android {
     namespace = "com.simplereader"
@@ -61,9 +61,9 @@ android {
 dependencies {
     val kotlinVersion = "2.3.0"
 
-    val activityVersion = "1.12.3"
+    val activityVersion = "1.12.4"
     val appcompatVersion = "1.7.1"
-    val composeUiVersion = "1.10.2"
+    val composeUiVersion = "1.10.3"
     val constraintLayoutVersion = "2.2.1"
     val coroutinesVersion = "1.10.2"
     val cryptoVersion = "1.1.0"
