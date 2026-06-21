@@ -1,15 +1,15 @@
 plugins {
-    id("com.android.library") version "9.0.1"
+    id("com.android.library") version "9.2.1"
     id("androidx.room")  version "2.8.4"
     id("com.google.devtools.ksp") version "2.3.4"
 }
 
 group = "com.simplereader"
-version = "4.1.0"
+version = "4.1.1"
 
 android {
     namespace = "com.simplereader"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk    =  28
@@ -61,21 +61,21 @@ android {
 dependencies {
     val kotlinVersion = "2.3.0"
 
-    val activityVersion = "1.12.4"
+    val activityVersion = "1.13.0"
     val appcompatVersion = "1.7.1"
-    val composeUiVersion = "1.10.3"
+    val composeUiVersion = "1.11.3"
     val constraintLayoutVersion = "2.2.1"
-    val coroutinesVersion = "1.10.2"
+    val coroutinesVersion = "1.11.0"
     val cryptoVersion = "1.1.0"
     val fragmentVersion = "1.8.9"
-    val lifecycleVersion = "2.10.0"
-    val materialVersion = "1.13.0"
+    val lifecycleVersion = "2.11.0"
+    val materialVersion = "1.14.0"
     val recyclerviewVersion = "1.4.0"
     val roomVersion = "2.8.4"
-    val workVersion= "2.11.1"
+    val workVersion= "2.11.2"
 
-    val gsonVersion = "2.13.2"
-    val readiumVersion = "3.1.2"
+    val gsonVersion = "2.14.0"
+    val readiumVersion = "3.3.0"
     val retrofitVersion = "3.0.0"
 
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))

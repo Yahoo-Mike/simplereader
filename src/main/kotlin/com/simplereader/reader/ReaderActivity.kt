@@ -292,7 +292,7 @@ class ReaderActivity : AppCompatActivity(), OnSingleTapListener {
     private suspend fun initBook(): Try<BookData, OpeningError> {
         Log.v(LOG_TAG, "-> initBook")
 
-        val bookUrl = File(mFilename!!).toUrl()
+        val bookUrl = File(mFilename!!).toUrl(false)
         val bookType: MediaType? = BookData.getMediaType(mFilename!!)
         if (bookType == null) {
             return Try.Companion.failure(

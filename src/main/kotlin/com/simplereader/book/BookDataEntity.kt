@@ -30,7 +30,7 @@ data class BookDataEntity (
 
             // so we have to Readium parse the passed filename and then try to extract the
             // publication.metadata.identifier value
-            val bookUrl = File(filename).toUrl()
+            val bookUrl = File(filename).toUrl(false)
             val bookType: MediaType? = BookData.getMediaType(filename)
             if (bookType == null) {
                 // no extension on the file to determine its type
